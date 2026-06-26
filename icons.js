@@ -36,7 +36,8 @@
   /* ---- icon-specific CSS (self-contained) ---- */
   const CSS = `
 .svg-ic{display:inline-block;vertical-align:-.16em;width:1.05em;height:1.05em;
-  stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none;
+  pointer-events:none}
 .cat-ic{fill:currentColor;stroke:none}
 .animal-map-marker .svg-ic,.continent-marker .svg-ic{width:18px;height:18px}`;
 

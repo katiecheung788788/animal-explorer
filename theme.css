@@ -61,7 +61,8 @@ header{background:linear-gradient(180deg,var(--bg-grad),transparent)!important;
 .back-btn:hover{border-color:var(--accent-line)!important;color:var(--accent)!important;
   background:var(--accent-soft)!important;}
 .svg-ic{display:inline-block;vertical-align:-.16em;width:1.05em;height:1.05em;
-  stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+  stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none;
+  pointer-events:none;}
 
 /* ---- Hub landing ---- */
 h1., .globe{filter:none;}
