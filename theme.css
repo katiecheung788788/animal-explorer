@@ -164,8 +164,11 @@ h1., .globe{filter:none;}
 .modal{background:var(--card)!important;border:1px solid var(--border)!important;border-radius:var(--r-lg)!important;
   box-shadow:var(--shadow)!important;}
 .modal-overlay,.overlay{background:rgba(8,9,7,.86)!important;backdrop-filter:blur(4px);}
-.modal-close{background:rgba(255,255,255,.07)!important;color:var(--text)!important;border:1px solid var(--border)!important;}
+.modal-close{background:rgba(255,255,255,.07)!important;color:var(--text)!important;border:1px solid var(--border)!important;
+  z-index:6!important;}
 .modal-close:hover{background:var(--accent-soft)!important;color:var(--accent)!important;border-color:var(--accent-line)!important;}
+/* decorative hero layers must not intercept taps (mobile close-button fix) */
+.modal-hero-grad,.modal-hero-title,.modal-hero img,.modal-hero .fallback-hero{pointer-events:none!important;}
 .modal-hero-title h2,.modal-name{color:var(--text)!important;}
 .modal-hero-title em,.modal-sci{color:var(--accent)!important;}
 .modal-desc{font-family:var(--font-display)!important;font-size:1rem!important;line-height:1.7!important;color:#d8d2c2!important;}
