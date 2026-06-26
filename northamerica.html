@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Animal Explorer — North America</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#090f09;--card:#121e12;--border:#1e341e;--text:#ddeacc;--sub:#6a8a5a;--accent:#f0d07a;--mammal:#2e6e20;--reptile:#7a3a10;--bird:#164880;--fish:#086060;--insect:#706000;--amphibian:#4a1878}
+body{background:var(--bg);color:var(--text);font-family:Georgia,serif;min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;padding:.9rem 1.4rem;background:#0d160d;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:500}
+.back-btn{padding:.32rem .85rem;background:transparent;border:1px solid var(--border);color:var(--sub);font:.78rem Arial,sans-serif;border-radius:20px;cursor:pointer;transition:all .15s}
+.back-btn:hover{border-color:var(--accent);color:var(--accent)}
+.logo{font-size:1.2rem;color:var(--accent)}
+.disc-badge{padding:.3rem .75rem;border:1px solid rgba(240,208,122,.25);border-radius:20px;font:.78rem Arial,sans-serif;color:var(--accent);cursor:pointer;background:rgba(240,208,122,.06)}
+.disc-panel{display:none;padding:.6rem 1.4rem;background:#0a130a;border-bottom:1px solid var(--border)}
+.disc-bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:.3rem}
+.disc-bar{height:100%;background:linear-gradient(90deg,#3a7820,var(--accent));border-radius:3px;transition:width .5s}
+.disc-panel p{font:.73rem Arial,sans-serif;color:var(--sub)}.disc-panel p span{color:var(--accent)}
+.ticker-wrap{display:flex;align-items:center;gap:.5rem;font:italic .76rem/1.3 Arial,sans-serif;color:var(--sub);width:300px;flex-shrink:0}
+.ticker-label{color:var(--accent);font-style:normal;font-weight:bold;white-space:nowrap}
+#ticker-track{overflow:hidden;flex:1;min-width:0;position:relative;height:1.3em;cursor:default}
+#ticker{position:absolute;white-space:nowrap;will-change:transform;opacity:0}
+.controls{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.65rem 1.4rem;background:#0d160d;border-bottom:1px solid var(--border)}
+.search-wrap{position:relative;flex:1;min-width:150px;max-width:240px}
+.search-wrap svg{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--sub);fill:none;pointer-events:none}
+.search-input{width:100%;padding:.36rem .75rem .36rem 1.9rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;color:var(--text);font:.8rem Arial,sans-serif;outline:none}
+.search-input:focus{border-color:var(--accent)}.search-input::placeholder{color:var(--sub)}
+.pill{padding:.32rem .8rem;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--sub);font:.76rem Arial,sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap}
+.pill:hover{border-color:var(--accent);color:var(--accent)}
+.pill.active[data-cat=all]{background:var(--accent);border-color:var(--accent);color:#111;font-weight:bold}
+.pill.active[data-cat=mammals]{background:var(--mammal);border-color:var(--mammal);color:#fff;font-weight:bold}
+.pill.active[data-cat=reptiles]{background:var(--reptile);border-color:var(--reptile);color:#fff;font-weight:bold}
+.pill.active[data-cat=birds]{background:var(--bird);border-color:var(--bird);color:#fff;font-weight:bold}
+.pill.active[data-cat=fish]{background:var(--fish);border-color:var(--fish);color:#fff;font-weight:bold}
+.pill.active[data-cat=insects]{background:var(--insect);border-color:var(--insect);color:#fff;font-weight:bold}
+.pill.active[data-cat=amphibians]{background:var(--amphibian);border-color:var(--amphibian);color:#fff;font-weight:bold}
+.surprise-btn{padding:.36rem .95rem;border:none;border-radius:20px;background:linear-gradient(135deg,#3a1880,#7030d0);color:#fff;font:.76rem Arial,sans-serif;cursor:pointer;white-space:nowrap}
+.map-section{border-bottom:2px solid var(--border)}
+#world-map{height:380px;width:100%}
+.map-hint{text-align:center;padding:.3rem;color:var(--sub);font:1rem Arial,sans-serif;background:#0b140b;border-bottom:1px solid var(--border)}
+.leaflet-container{background:#060e1e}
+.animal-map-marker{width:34px;height:34px;border-radius:50%;background:rgba(9,15,9,.9);border:2px solid rgba(240,208,122,.5);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;transition:transform .15s;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+.animal-map-marker:hover{transform:scale(1.25);border-color:var(--accent)}
+.animal-map-marker.discovered{border-color:var(--accent);background:rgba(240,208,122,.15)}
+.results-section{padding:1.2rem 1.4rem}
+.results-header{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:.9rem}
+.results-header h2{font-size:1.1rem;color:var(--accent)}
+#results-count{color:var(--sub);font:.78rem Arial,sans-serif}
+#reset-btn{margin-left:auto;padding:.26rem .7rem;background:transparent;border:1px solid var(--border);color:var(--sub);font:.74rem Arial,sans-serif;border-radius:20px;cursor:pointer}
+#reset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.9rem}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.card{border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid var(--border);background:var(--card);animation:slideUp .3s ease backwards;transition:box-shadow .3s,border-color .25s;position:relative}
+.card:hover{box-shadow:0 10px 28px rgba(0,0,0,.6);border-color:rgba(240,208,122,.35)}
+.card-photo{height:155px;position:relative;overflow:hidden}
+.card-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:4.5rem;z-index:1;transition:opacity .3s}
+.card-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;transition:transform .5s,opacity .3s}
+.card:hover .card-photo img{transform:scale(1.07)}
+.card-overlay{position:absolute;inset:0 0 auto 0;height:155px;background:rgba(5,10,5,.88);backdrop-filter:blur(2px);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:.9rem;text-align:center;z-index:3;opacity:0;transition:opacity .2s}
+.card:hover .card-overlay{opacity:1}
+.card-overlay p{font:.78rem/1.5 Arial,sans-serif;color:#dde;margin-bottom:.4rem}
+.card-overlay small{font:.68rem Arial,sans-serif;color:var(--accent)}
+.card-info{padding:.6rem .85rem .7rem;position:relative}
+.card-name{font-size:.88rem;margin-bottom:.28rem}
+.card-row{display:flex;align-items:center;justify-content:space-between}
+.card-check{position:absolute;top:.5rem;right:.7rem;width:17px;height:17px;border-radius:50%;background:var(--accent);color:#111;font:.7rem Arial,sans-serif;font-weight:bold;display:flex;align-items:center;justify-content:center}
+.badge{display:inline-block;padding:.08rem .42rem;border-radius:10px;font:bold .64rem/1.4 Arial,sans-serif;text-transform:uppercase;letter-spacing:.3px}
+.b-mammals{background:rgba(46,110,32,.28);color:#70d450;border:1px solid rgba(46,110,32,.45)}
+.b-reptiles{background:rgba(122,58,16,.28);color:#e08040;border:1px solid rgba(122,58,16,.45)}
+.b-birds{background:rgba(22,72,128,.28);color:#58b0f0;border:1px solid rgba(22,72,128,.45)}
+.b-fish{background:rgba(8,96,96,.28);color:#30d8d8;border:1px solid rgba(8,96,96,.45)}
+.b-insects{background:rgba(112,96,0,.28);color:#e0cc30;border:1px solid rgba(112,96,0,.45)}
+.b-amphibians{background:rgba(74,24,120,.28);color:#c070f0;border:1px solid rgba(74,24,120,.45)}
+.s-badge{display:inline-block;padding:.08rem .42rem;border-radius:10px;font:bold .64rem/1.4 Arial,sans-serif;text-transform:uppercase}
+.s-LC{background:rgba(32,110,32,.2);color:#60d060;border:1px solid rgba(32,110,32,.4)}
+.s-NT{background:rgba(190,170,0,.15);color:#d8c840;border:1px solid rgba(190,170,0,.3)}
+.s-VU{background:rgba(190,110,0,.15);color:#e09030;border:1px solid rgba(190,110,0,.3)}
+.s-EN{background:rgba(190,55,0,.15);color:#e05828;border:1px solid rgba(190,55,0,.3)}
+.s-CR{background:rgba(190,0,0,.15);color:#e02828;border:1px solid rgba(190,0,0,.3)}
+.bg-mammals{background:linear-gradient(135deg,#0e220a,#183818)}.bg-reptiles{background:linear-gradient(135deg,#200e04,#381808)}
+.bg-birds{background:linear-gradient(135deg,#060e28,#0e1e44)}.bg-fish{background:linear-gradient(135deg,#021414,#063030)}
+.bg-insects{background:linear-gradient(135deg,#141000,#282002)}.bg-amphibians{background:linear-gradient(135deg,#0e041c,#1c0838)}
+.empty-state{text-align:center;padding:3rem 2rem;color:var(--sub);font:1rem Arial,sans-serif}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:1000;padding:1rem;opacity:0;pointer-events:none;transition:opacity .22s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:#111c11;border:1px solid #2a422a;border-radius:16px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;position:relative;transform:scale(.94) translateY(10px);transition:transform .22s}
+.modal-overlay.open .modal{transform:scale(1) translateY(0)}
+.modal-close{position:absolute;top:.8rem;right:.8rem;background:rgba(255,255,255,.1);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font:.92rem Arial,sans-serif;line-height:30px;text-align:center;z-index:2}
+.modal-close:hover{background:rgba(255,255,255,.22)}
+.modal-hero{height:230px;position:relative;overflow:hidden;border-radius:16px 16px 0 0}
+.modal-hero img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:1;opacity:0;transition:opacity .3s}
+.modal-hero img.loaded{opacity:1}
+.modal-hero .fallback-hero{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:6.5rem;z-index:0}
+.modal-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(17,28,17,.9) 0%,transparent 55%);z-index:2}
+.modal-hero-title{position:absolute;bottom:.9rem;left:1.3rem;z-index:3}
+.modal-hero-title h2{font-size:1.6rem;line-height:1.1;margin-bottom:.25rem}
+.modal-hero-title em{color:var(--sub);font:.85rem Arial,sans-serif}
+.modal-body{padding:1.1rem 1.4rem 1.6rem}
+.modal-badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem}
+.modal-desc{font:.88rem/1.72 Georgia,serif;margin-bottom:1rem;color:#ccd8bb}
+.facts-head{font:bold .66rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.45rem}
+.facts-list{list-style:none;margin-bottom:.9rem}
+.facts-list li{display:flex;gap:.5rem;align-items:flex-start;padding:.34rem 0;border-bottom:1px solid var(--border);font:.82rem/1.55 Arial,sans-serif;opacity:0;transform:translateX(-8px);transition:opacity .3s,transform .3s}
+.facts-list li.visible{opacity:1;transform:none}.facts-list li:last-child{border-bottom:none}
+.facts-list li::before{content:'▸';color:var(--accent);flex-shrink:0;margin-top:1px}
+.habitat-section{margin-top:.7rem;padding:.75rem;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px}
+.habitat-title{font:bold .66rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.35rem}
+.habitat-name{font:.8rem Arial,sans-serif;color:var(--sub);margin-bottom:.55rem}
+.habitat-btns{display:flex;gap:.45rem;flex-wrap:wrap}
+.habitat-btn{padding:.33rem .82rem;border-radius:20px;border:none;cursor:pointer;font:.74rem Arial,sans-serif;font-weight:bold;display:flex;align-items:center;gap:.32rem;transition:transform .15s;text-decoration:none}
+.habitat-btn:hover{transform:translateY(-2px)}
+.hbtn-sat{background:rgba(19,66,26,.8);color:#90d890}.hbtn-sv{background:rgba(66,19,24,.8);color:#d89090}
+.modal-nav{display:flex;justify-content:space-between;margin-top:1rem;padding-top:.7rem;border-top:1px solid var(--border)}
+.modal-nav button{padding:.38rem .95rem;background:transparent;border:1px solid var(--border);color:var(--sub);font:.78rem Arial,sans-serif;border-radius:20px;cursor:pointer}
+.modal-nav button:hover{border-color:var(--accent);color:var(--accent)}
+@media(max-width:560px){.cards-grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:.6rem}.card-photo,.card-overlay{height:125px}#world-map{height:240px}}
+</style>
+<script src="icons.js"></script>
+<link rel="stylesheet" href="theme.css"/>
+</head>
+<body>
+<header>
+  <a class="back-btn" href="hub.html">← All Continents</a>
+  <div class="logo">🌎 North America — Wildlife Explorer</div>
+  <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
+    <div class="ticker-wrap"><span class="ticker-label">Fact:</span><div id="ticker-track"><span id="ticker"></span></div></div>
+    <div class="disc-badge" onclick="toggleDisc()"><span id="disc-count">0/60</span> explored</div>
+  </div>
+</header>
+<div class="disc-panel" id="disc-panel">
+  <div class="disc-bar-wrap"><div class="disc-bar" id="disc-bar" style="width:0%"></div></div>
+  <p>Explored <span id="disc-text">0</span> of <span id="disc-total">60</span> North American animals</p>
+</div>
+<div class="controls">
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22" stroke-linecap="round"/></svg>
+    <input class="search-input" id="search-input" type="text" placeholder="Search animals…" autocomplete="off"/>
+  </div>
+  <button class="pill active" data-cat="all">All</button>
+  <button class="pill" data-cat="mammals">🐻 Mammals</button>
+  <button class="pill" data-cat="reptiles">🐊 Reptiles</button>
+  <button class="pill" data-cat="birds">🦅 Birds</button>
+  <button class="pill" data-cat="fish">🦈 Fish</button>
+  <button class="pill" data-cat="insects">🦋 Insects</button>
+  <button class="pill" data-cat="amphibians">🐸 Amphibians</button>
+  <button class="surprise-btn" onclick="surpriseMe()">🎲 Surprise!</button>
+</div>
+<div class="map-section"><div id="world-map"></div></div>
+<p class="map-hint">🛰 Satellite imagery · Click animal pins to explore</p>
+<section class="results-section">
+  <div class="results-header">
+    <h2 id="results-title">All North American Animals</h2>
+    <span id="results-count"></span>
+    <button id="reset-btn" style="display:none" onclick="resetCat()">✕ Clear filter</button>
+  </div>
+  <div class="cards-grid" id="cards-grid"></div>
+  <div class="empty-state" id="empty-state" style="display:none">🔭 No animals found.</div>
+</section>
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" role="dialog">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const ANIMALS=[
+{name:'Grizzly Bear',scientific:'Ursus arctos horribilis',emoji:'🐻',category:'mammals',status:'Least Concern',wiki:'Grizzly_bear',lat:44.43,lon:-110.59,habitat:'Yellowstone National Park, Wyoming',
+desc:'One of North America\'s most powerful animals is surprisingly gentle in diet — up to 80% plants, berries, and insects — yet capable of running at 55 km/h.',
+facts:['Can smell food from over 29 km away — most acute olfaction of any land mammal','Run at 55 km/h over short distances — faster than a racehorse','Shoulder hump is solid muscle used for powerful digging — not fat','Eat up to 20,000 calories per day before winter hibernation','80% of their diet is plants, berries, and insects — not large prey']},
+
+{name:'American Bison',scientific:'Bison bison',emoji:'🦬',category:'mammals',status:'Near Threatened',wiki:'American_bison',lat:43.75,lon:-102.49,habitat:'Badlands, South Dakota',
+desc:'Once numbering 60 million and reduced to under 1,000 by 1890 — now the USA\'s national mammal — the American bison is North America\'s defining conservation comeback story.',
+facts:['Once roamed in herds of 60 million — the largest animal aggregation in history','Reduced to under 1,000 by 1890 through deliberate slaughter; now 500,000','Can run at 65 km/h despite weighing up to 900 kg','Jump fences over 1.5 m high from a standing start — they are not slow animals','Their wallows create wetlands that increase biodiversity for dozens of other species']},
+
+{name:'Gray Wolf',scientific:'Canis lupus',emoji:'🐺',category:'mammals',status:'Least Concern',wiki:'Gray_wolf',lat:44.80,lon:-110.55,habitat:'Yellowstone National Park, Wyoming',
+desc:'The apex predator whose reintroduction to Yellowstone triggered a trophic cascade that changed the behaviour of rivers, shrubs, and songbirds — the power of keystone species revealed.',
+facts:['Yellowstone reintroduction in 1995 reshaped entire river systems through a trophic cascade','Pack territories can exceed 1,000 km²','Howls carry 16 km in open terrain — primary long-distance communication','Mate for life; both parents and older siblings help raise pups','Can travel 200 km in a single day when following prey herds']},
+
+{name:'Polar Bear',scientific:'Ursus maritimus',emoji:'🐻‍❄️',category:'mammals',status:'Vulnerable',wiki:'Polar_bear',lat:58.77,lon:-93.82,habitat:'Churchill, Manitoba, Canada',
+desc:'The world\'s largest land predator and the only bear that is a true hypercarnivore — living almost entirely on ringed seals and dependent on sea ice for survival in a warming world.',
+facts:['Largest land predator on Earth — males average 450 kg; record is 1,002 kg','Fur appears white but each hair is actually transparent and hollow','Black skin beneath fur absorbs solar radiation — a natural solar heating system','Can swim 100 km non-stop in open Arctic water between ice floes','Population predicted to decline 30% by 2050 due to sea ice loss']},
+
+{name:'Moose',scientific:'Alces alces',emoji:'🦌',category:'mammals',status:'Least Concern',wiki:'Moose',lat:60.50,lon:-147.50,habitat:'Kenai Peninsula, Alaska',
+desc:'The world\'s largest member of the deer family towers up to 2.3 m at the shoulder, yet is a surprisingly fast swimmer and has been observed diving to eat aquatic plants from lake bottoms.',
+facts:['World\'s largest deer — bulls weigh up to 700 kg with antler spans of 1.8 m','Excellent swimmers — cross lakes up to 20 km wide and can dive to 5.5 m depth','Can run at 55 km/h and maintain 30 km/h for many km','Long legs allow them to wade through deep snow that stops other animals','Responsible for more human injuries in North America than any other wild animal']},
+
+{name:'American Black Bear',scientific:'Ursus americanus',emoji:'🐻',category:'mammals',status:'Least Concern',wiki:'American_black_bear',lat:35.70,lon:-83.50,habitat:'Great Smoky Mountains, Tennessee',
+desc:'The most abundant bear species in the world — over 800,000 in North America — the black bear is both more omnivorous and less aggressive than the grizzly, thriving alongside expanding human populations.',
+facts:['Most abundant bear in the world — over 800,000 across North America','Not always black — colour ranges from jet black to cinnamon and even creamy white','Excellent tree climbers from birth — cubs can climb before they can walk well','Sense of smell is 7× stronger than a bloodhound\'s — can detect food from 20 km','Spend 5–7 months in winter torpor — heart rate drops from 40 to 8 beats per minute']},
+
+{name:'Pronghorn',scientific:'Antilocapra americana',emoji:'🦌',category:'mammals',status:'Least Concern',wiki:'Pronghorn',lat:43.00,lon:-104.00,habitat:'Wyoming Great Basin',
+desc:'The second-fastest land animal on Earth — reaching 88 km/h and sustaining 56 km/h for many km — evolved its speed to outrun a cheetah that has been extinct in North America for 10,000 years.',
+facts:['Second-fastest land animal: bursts of 88 km/h; sustains 56 km/h for over 6 km','Speed evolved to outrun American cheetahs now extinct for 10,000 years','Eyes are the size of an elephant\'s despite its small head — 320° field of view','Can run 10× longer than a cheetah at high speed due to extraordinary lung capacity','Only horned animal that sheds and regrows its horns annually — unique among bovids']},
+
+{name:'Mountain Lion',scientific:'Puma concolor',emoji:'🦁',category:'mammals',status:'Least Concern',wiki:'Cougar',lat:36.50,lon:-118.50,habitat:'Sierra Nevada, California',
+desc:'The most widely distributed wild land mammal in the Western Hemisphere — from Yukon to Patagonia — the mountain lion holds more record names (puma, cougar, catamount, panther) than any other mammal.',
+facts:['Most names of any mammal — over 40 common names in English alone','Widest range of any terrestrial mammal in the Western Hemisphere','Can leap 4.5 m vertically and 12 m horizontally','A litter is born camouflaged with spots that fade in the first year','Cannot roar — communicates with chirps, whistles, and a haunting scream']},
+
+{name:'Beluga Whale',scientific:'Delphinapterus leucas',emoji:'🐳',category:'mammals',status:'Least Concern',wiki:'Beluga_whale',lat:63.00,lon:-90.50,habitat:'Hudson Bay, Canada',
+desc:'The "canary of the sea" — so named for its rich vocabulary of whistles, clicks, and chirps — the beluga is one of the most vocal cetaceans and can flex its melon to change the shape of its sound beam.',
+facts:['Called the "canary of the sea" for its exceptionally varied vocal repertoire','Can flex the melon (forehead) to change the direction and shape of echolocation beams','Lack a dorsal fin — an adaptation for swimming under sea ice without snagging','Can reverse direction while swimming and swim backwards with ease','Annual migrations of thousands follow the same routes used by ancestors for millennia']},
+
+{name:'West Indian Manatee',scientific:'Trichechus manatus',emoji:'🐘',category:'mammals',status:'Vulnerable',wiki:'West_Indian_manatee',lat:27.50,lon:-82.50,habitat:'Crystal River, Florida',
+desc:'The gentle giant of Florida\'s waterways — a fully aquatic herbivore that consumes 10% of its body weight in seagrass daily, and must surface every 3–5 minutes to breathe.',
+facts:['Must surface to breathe every 3–5 minutes, even while sleeping (sleep at the surface)','Consumes 10–15% of body weight in seagrass and aquatic plants every day','Closest living relatives are elephants and hyraxes — not other marine mammals','Can rotate each tooth across the jaw, replacing worn molars throughout life (polyphyodonty)','Population recovering from near-extinction thanks to protected water zones and speed limits']},
+
+{name:'Narwhal',scientific:'Monodon monoceros',emoji:'🦄',category:'mammals',status:'Least Concern',wiki:'Narwhal',lat:72.00,lon:-80.00,habitat:'Baffin Bay, Nunavut',
+desc:'The "unicorn of the sea" — the narwhal\'s extraordinary spiral tusk is actually a modified tooth with 10 million nerve endings exposed on its surface, possibly used as a highly sensitive sensory organ.',
+facts:['Tusk is a modified canine tooth grown through the upper lip — only males have it (most of them)','Tusk has 10 million nerve endings, making it a hyper-sensitive sensory organ for water chemistry','Can dive to 1,500 m — deeper than almost any other cetacean','Live year-round in the High Arctic — never leave ice-covered waters','In medieval Europe, narwhal tusks sold for their weight in gold as "alicorn" (unicorn horn)']},
+
+{name:'Wolverine',scientific:'Gulo gulo',emoji:'🦡',category:'mammals',status:'Least Concern',wiki:'Wolverine_(animal)',lat:48.50,lon:-113.60,habitat:'Glacier National Park, Montana',
+desc:'The largest land-dwelling mustelid is also one of the most tenacious animals alive — documented driving grizzly bears and mountain lions off their kills despite weighing less than 18 kg.',
+facts:['Documented driving grizzlies and mountain lions from kills — with just 18 kg of body weight','Travel up to 45 km per day through deep snow in search of food','Semi-retractable claws act as natural crampons on ice and snowpack','Scent glands so powerful it earned the name "skunk bear" in older wildlife literature','A single wolverine requires a territory of up to 2,000 km² in the northern Rockies']},
+
+{name:'North American River Otter',scientific:'Lontra canadensis',emoji:'🦦',category:'mammals',status:'Least Concern',wiki:'North_American_river_otter',lat:39.00,lon:-76.50,habitat:'Chesapeake Bay Watershed, Maryland',
+desc:'One of North America\'s most playful wild mammals — river otters have been observed sliding down muddy banks and snow slopes purely for recreation, a rare example of play in non-human animals.',
+facts:['Observed sliding down snow and mud banks repeatedly — one of the clearest examples of animal play','Nostrils and ears close completely underwater','Can hold their breath for up to 8 minutes while diving for fish','Recovered across much of their original range after near-elimination by fur trapping','Consume 15–20% of body weight in fish per day to fuel their high metabolism']},
+
+{name:'Nine-banded Armadillo',scientific:'Dasypus novemcinctus',emoji:'🐾',category:'mammals',status:'Least Concern',wiki:'Nine-banded_armadillo',lat:30.00,lon:-97.00,habitat:'Central Texas',
+desc:'The only mammal with a natural leprosy infection and the only armadillo to routinely give birth to identical quadruplets — the nine-banded armadillo has expanded its range northward by 1,000 km in 100 years.',
+facts:['One of only two non-human animals that can naturally contract leprosy — used extensively in leprosy research','Always gives birth to identical quadruplets — from a single fertilised egg','Can hold its breath for 6 minutes — uses this to walk across the bottom of shallow rivers','Armour is not solid — flexible bands allow limited rolling (not full ball like three-banded)','Expanded range northward by over 1,000 km in the past century as winters warm']},
+
+{name:'Black-footed Ferret',scientific:'Mustela nigripes',emoji:'🐾',category:'mammals',status:'Endangered',wiki:'Black-footed_ferret',lat:43.00,lon:-104.00,habitat:'Thunder Basin, Wyoming',
+desc:'The most endangered mammal in North America was declared extinct in 1979 before a surviving wild population was discovered in 1981 — every wild individual alive today descends from just 7 founder animals.',
+facts:['Declared extinct in 1979 — a wild population of 129 was discovered in Meeteetse, Wyoming in 1981','All wild individuals alive today descend from just 7 founder animals from that colony','Entirely dependent on prairie dogs — both for food (90% of diet) and shelter (burrows)','Active at night — rarely observed in the wild even by professional biologists','Captive breeding and reintroduction has restored the population to over 300 wild individuals']},
+
+{name:'Snowshoe Hare',scientific:'Lepus americanus',emoji:'🐰',category:'mammals',status:'Least Concern',wiki:'Snowshoe_hare',lat:55.50,lon:-120.00,habitat:'Boreal Forest, British Columbia',
+desc:'A master of seasonal camouflage — the snowshoe hare turns from brown to snow-white in autumn, and its population cycles in a famous 10-year boom-and-bust linked to the Canada lynx.',
+facts:['Changes from summer brown to winter white in autumn — triggered by day length, not temperature','Feet are enormous and heavily furred — act as snowshoes in deep snow','Populations boom and crash in a famous 10-year cycle, followed closely by Canada lynx numbers','Can run at 45 km/h and leap 3 m in a single bound to escape predators','When fleeing, they change direction erratically — making them extremely hard to catch']},
+
+{name:'American Pika',scientific:'Ochotona princeps',emoji:'🐾',category:'mammals',status:'Least Concern',wiki:'American_pika',lat:37.80,lon:-119.50,habitat:'Yosemite High Country, California',
+desc:'A tiny alpine relative of rabbits that does not hibernate — instead, the pika spends summer storing hundreds of trips\' worth of cut vegetation in "haypiles" to survive winter under the snow.',
+facts:['Does not hibernate — stores vegetation in elaborate "haypiles" to eat through winter','Call — a distinctive "EENK" — serves as both territory proclamation and alarm signal','Cannot tolerate high temperatures — dies if exposed to 25°C for just 6 hours','Has retreated uphill by an average of 145 m in elevation in 10 years due to warming','A single pika makes thousands of trips to gather hay for winter — working continuously through summer']},
+
+{name:'Sea Otter',scientific:'Enhydra lutris',emoji:'🦦',category:'mammals',status:'Endangered',wiki:'Sea_otter',lat:36.60,lon:-121.90,habitat:'Monterey Bay, California',
+desc:'The densest fur of any mammal — up to 1 million hairs per square inch — keeps the sea otter warm in the Pacific without any body fat for insulation, requiring it to eat 25% of its body weight daily.',
+facts:['Densest fur of any mammal — up to 1 million hairs per square inch (no blubber for warmth)','Must eat 25% of body weight per day to fuel their high metabolic rate','Use rocks as tools to crack open clams and abalone — one of very few tool-using animals','Wrap themselves in kelp fronds while sleeping so they don\'t drift out to sea','As a keystone species, their return to California coasts tripled kelp forest area within a decade']},
+
+{name:'White-tailed Deer',scientific:'Odocoileus virginianus',emoji:'🦌',category:'mammals',status:'Least Concern',wiki:'White-tailed_deer',lat:44.00,lon:-89.00,habitat:'Wisconsin',
+desc:'The most numerous large wild mammal in North America — estimated at 30 million individuals — the white-tailed deer has adapted extraordinarily well to suburban and agricultural habitats.',
+facts:['Most numerous large wild mammal in North America — estimated 30 million individuals','White "flag" tail is raised as a warning signal to other deer when fleeing','Fawns have no scent for their first week of life — a defence against predator detection','Antlers grow at up to 2.5 cm per day — the fastest-growing tissue of any mammal','Cause over 1.5 million vehicle collisions per year in the United States']},
+
+{name:'Humpback Whale',scientific:'Megaptera novaeangliae',emoji:'🐋',category:'mammals',status:'Least Concern',wiki:'Humpback_whale',lat:46.00,lon:-124.00,habitat:'Pacific Coast, Oregon/Washington',
+desc:'Famous for the longest and most complex songs in the animal kingdom — lasting up to 20 hours — and for lunge-feeding in coordinated groups using bubble-net techniques that compress millions of krill.',
+facts:['Males sing continuously for up to 20 hours — the longest animal songs known','Bubble-net feeding: groups cooperate to herd krill into a tight column then lunge from below','Migrate up to 25,000 km round-trip — one of the longest migrations of any mammal','Tail patterns are as unique as a fingerprint — used to identify individuals across decades','Population recovered from near-extinction (1,000 individuals in 1966) to over 80,000 today']},
+
+// REPTILES
+{name:'American Alligator',scientific:'Alligator mississippiensis',emoji:'🐊',category:'reptiles',status:'Least Concern',wiki:'American_alligator',lat:25.51,lon:-80.93,habitat:'Everglades, Florida',
+desc:'A conservation triumph — once nearly hunted to extinction in the 1960s, strict federal protections revived the American alligator to over 1 million animals across the southeastern United States.',
+facts:['Reduced to near-extinction; now over 1 million — a defining conservation success story','Nest temperature determines sex: above 34°C produces males; below 30°C produces females','Females carry hatchlings to water in their mouths — attentive maternal behaviour for a reptile','Surprisingly agile on land; can sprint 17 km/h in short bursts','Keystone species — their wallows create freshwater habitats used by dozens of other species']},
+
+{name:'American Crocodile',scientific:'Crocodylus acutus',emoji:'🐊',category:'reptiles',status:'Vulnerable',wiki:'American_crocodile',lat:25.20,lon:-80.80,habitat:'Florida Bay & Caribbean Coast',
+desc:'Unlike its alligator cousin, the American crocodile thrives in saltwater — found from Florida to Peru — and is significantly rarer, more slender, and tolerates mixing with humans in some coastal communities.',
+facts:['The only place alligators and crocodiles coexist in the wild is Florida Bay','Tolerates saltwater via salt-secreting glands on the tongue — unique among New World crocodilians','More slender snout than the alligator — adapted for fish-catching in open water','Critically endangered in Florida; wild population has recovered to ~2,000 from under 200','The most widespread crocodilian in the Americas — range from Florida to Peru']},
+
+{name:'Gila Monster',scientific:'Heloderma suspectum',emoji:'🦎',category:'reptiles',status:'Near Threatened',wiki:'Gila_monster',lat:33.50,lon:-112.00,habitat:'Sonoran Desert, Arizona',
+desc:'One of only two venomous lizard species in North America — the Gila monster\'s saliva contains exendin-4, a compound that inspired the development of a breakthrough Type 2 diabetes medication.',
+facts:['One of only two venomous lizards in North America (the other is the Mexican beaded lizard)','Venom glands are in the lower jaw, not upper — it must chew to deliver venom (unlike snakes)','Saliva contains exendin-4, which inspired exenatide (Byetta) — a leading Type 2 diabetes drug','Stores fat in its large tail — survives several months between meals in the wild','Spends up to 98% of its life underground or under rocks — rarely seen in the wild']},
+
+{name:'Timber Rattlesnake',scientific:'Crotalus horridus',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'Timber_rattlesnake',lat:41.50,lon:-74.50,habitat:'Catskill Mountains, New York',
+desc:'One of the most venomous snakes in North America displays a fascinating social behaviour unknown in most snakes — communal overwintering dens shared across generations, with multiple species present.',
+facts:['Communal dens used by the same snake generations for centuries — some den sites are known from colonial records','One of the most venomous snakes in eastern North America','Live up to 30 years in the wild — exceptionally long-lived for a temperate snake','Females reproduce only once every 3–5 years — extremely slow reproductive rate','Featured on the "Don\'t Tread On Me" (Gadsden) flag — a symbol of American independence']},
+
+{name:'Common Snapping Turtle',scientific:'Chelydra serpentina',emoji:'🐢',category:'reptiles',status:'Least Concern',wiki:'Common_snapping_turtle',lat:43.00,lon:-76.00,habitat:'Upstate New York',
+desc:'North America\'s largest freshwater turtle cannot retract into its shell — so it defends itself with a lightning-fast strike that can sever a finger; yet it is a critical ecosystem cleaner in every lake it inhabits.',
+facts:['Shell is too small to retract into — compensates with an aggressive defensive bite','Strike speed measured at 50 ms — faster than any striking snake on the continent','Clean the bottom of ponds and lakes by consuming carrion, vegetation, and injured animals','Females travel up to 10 km overland to find suitable nesting sites','Can live for over 100 years in the wild — among the longest-lived North American reptiles']},
+
+{name:'Leatherback Sea Turtle',scientific:'Dermochelys coriacea',emoji:'🐢',category:'reptiles',status:'Vulnerable',wiki:'Leatherback_sea_turtle',lat:10.50,lon:-61.50,habitat:'Trinidad, Caribbean',
+desc:'The world\'s largest turtle and the deepest-diving reptile on Earth — the leatherback dives to 1,280 m and maintains a body temperature 18°C above the surrounding ocean water.',
+facts:['World\'s largest turtle — up to 700 kg and 2.2 m long','Deepest-diving reptile: documented at 1,280 m below the surface','Maintains body temperature 18°C above seawater through a counter-current heat exchange system','Migrates 20,000 km between nesting and feeding grounds annually','Entire diet is jellyfish — a single leatherback may eat 73% of its own body weight in jellyfish daily']},
+
+{name:'Western Diamondback Rattlesnake',scientific:'Crotalus atrox',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'Western_diamondback_rattlesnake',lat:32.00,lon:-106.00,habitat:'Chihuahuan Desert, New Mexico',
+desc:'The most dangerous snake in North America by bite incidence — responsible for the majority of snakebite deaths in the United States — and the source of the iconic rattling warning.',
+facts:['Responsible for more snakebite fatalities in North America than any other species','Rattle grows by one segment with each shedding — snakes shed 2–3 times per year','Can strike from a coiled position reaching one-third of body length in under 50 ms','Senses body heat of prey through pit organs accurate to 0.003°C temperature difference','Adults eat only every 2–3 weeks — a single meal of rabbit can sustain them for weeks']},
+
+{name:'Alligator Snapping Turtle',scientific:'Macrochelys temminckii',emoji:'🐢',category:'reptiles',status:'Vulnerable',wiki:'Alligator_snapping_turtle',lat:31.00,lon:-91.00,habitat:'Mississippi River System, Louisiana',
+desc:'The largest freshwater turtle in North America lures fish with a worm-like pink appendage on its tongue — lying motionless on river bottoms for hours until prey swims inside its gape.',
+facts:['Largest freshwater turtle in North America — up to 100 kg','Uses a worm-like lure on the tongue to attract fish — one of the only turtle species to do this','Lies motionless at the river bottom with mouth open for hours — a sit-and-wait ambush predator','Bite force among the highest of any vertebrate relative to skull size','Can live over 200 years — possibly the longest-lived freshwater reptile on Earth']},
+
+// BIRDS
+{name:'Bald Eagle',scientific:'Haliaeetus leucocephalus',emoji:'🦅',category:'birds',status:'Least Concern',wiki:'Bald_eagle',lat:58.30,lon:-134.42,habitat:'Inside Passage, Alaska',
+desc:'The national bird of the United States was nearly extinct by 1963 due to DDT poisoning — just 417 nesting pairs remained. Today, over 316,000 bald eagles soar over North America.',
+facts:['Near-extinct by 1963 (417 nesting pairs); now over 316,000 birds in North America','Wingspan reaches 2.4 m; can dive at over 100 km/h when stooping on prey','Mates for life and returns to the same nest every year — nests can weigh over a tonne','Can spot a fish from 2 km altitude and lock onto it with both eyes simultaneously','Named from Old English "balde" meaning white-headed — they are not bald']},
+
+{name:'California Condor',scientific:'Gymnogyps californianus',emoji:'🦅',category:'birds',status:'Critically Endangered',wiki:'California_condor',lat:36.10,lon:-112.10,habitat:'Grand Canyon, Arizona',
+desc:'Reduced to just 27 birds in 1987 in the most extreme conservation intervention in history — every individual was captured for breeding. Now 500+ soar over California, Arizona, and Baja California.',
+facts:['Reduced to 27 birds in 1987 — every individual was captured; wild population went to zero','Wingspan of 3 m — largest of any North American land bird','Can soar for hours without flapping, covering 250 km per day on thermals','Living to 60 years — one of the longest-lived birds on Earth','Lead poisoning from bullet fragments in carcasses remains the primary threat to recovery']},
+
+{name:'Whooping Crane',scientific:'Grus americana',emoji:'🦢',category:'birds',status:'Endangered',wiki:'Whooping_crane',lat:28.00,lon:-97.00,habitat:'Aransas National Wildlife Refuge, Texas',
+desc:'The tallest bird in North America narrowly avoided extinction — only 21 birds survived to 1941. Human-led migration routes were literally taught to captive-bred cranes by costumed pilots in ultralight aircraft.',
+facts:['Only 21 survived to 1941 — the rarest North American bird at the time','Wild population has grown to over 800 through one of history\'s most intensive recovery efforts','Captive-bred birds were taught migration routes by humans in ultralight aircraft costumes','Mates for life; pairs perform elaborate unison calling ceremonies during courtship','Wingspan reaches 2.3 m; stand 1.5 m tall — tallest North American bird']},
+
+{name:'American Flamingo',scientific:'Phoenicopterus ruber',emoji:'🦩',category:'birds',status:'Least Concern',wiki:'American_flamingo',lat:25.00,lon:-81.00,habitat:'Florida Bay, Florida',
+desc:'North America\'s only wild flamingo population — a mystery for decades before Florida Bay was confirmed as a natural breeding ground — gets its pink colour entirely from the carotenoids in its diet of brine shrimp.',
+facts:['Pink colour comes entirely from carotenoids in diet — zoo flamingos without the right food turn white','Feed with head inverted and upside down — the only birds to feed this way normally','Can fly at 60 km/h and travel hundreds of km overnight between feeding sites','Pairs cement bond with a synchronised "head-flagging" display performed facing each other','Florida Bay confirmed as a natural wild breeding site — no zoo origin for the population']},
+
+{name:'Atlantic Puffin',scientific:'Fratercula arctica',emoji:'🐦',category:'birds',status:'Vulnerable',wiki:'Atlantic_puffin',lat:47.50,lon:-52.50,habitat:'Cape St. Mary\'s, Newfoundland',
+desc:'The "sea parrot" spends most of its life on the open ocean — only coming ashore to breed — and can hold up to 62 sand eels crosswise in its bill simultaneously using a unique muscular arrangement.',
+facts:['Spends most of its life on the open ocean — only lands to breed','Can hold up to 62 sand eels simultaneously in its bill using backwards-pointing spines on the palate','Dives to 60 m depth and can reach 400 m/min — incredibly fast for their size','Wings beat up to 400 times per minute in flight','The same nest burrow is reused by the same pair for decades']},
+
+{name:'Great Horned Owl',scientific:'Bubo virginianus',emoji:'🦉',category:'birds',status:'Least Concern',wiki:'Great_horned_owl',lat:44.00,lon:-110.00,habitat:'Yellowstone Ecosystem, Wyoming',
+desc:'North America\'s most widespread owl is also its most powerful — the only predator that regularly kills and eats skunks, and the primary predator of the similarly-sized peregrine falcon.',
+facts:['Only common predator of skunks — immune to skunk spray or simply unbothered by it','Primary predator of the peregrine falcon — a bird nearly as powerful as itself','Eyes are fixed in sockets — cannot rotate; instead the owl rotates its head up to 270°','Hearing is so acute it can locate prey under 60 cm of compacted snow by sound alone','Begin nesting in February — often in the snow — before almost any other North American bird']},
+
+{name:'Ruby-throated Hummingbird',scientific:'Archilochus colubris',emoji:'🐦',category:'birds',status:'Least Concern',wiki:'Ruby-throated_hummingbird',lat:38.00,lon:-84.00,habitat:'Kentucky bluegrass region',
+desc:'The only hummingbird to nest in eastern North America crosses the Gulf of Mexico non-stop — 900 km over open water in 18–22 hours — despite weighing less than a US dime.',
+facts:['Crosses the Gulf of Mexico non-stop — 900 km over open water at 43 km/h','Weighs just 3 g — less than a penny','Heart beats up to 1,260 times per minute during flight','Wings beat 53 times per second; can fly backwards and hover stationary','Remembers the location of every flower it has visited and how long each takes to refill']},
+
+{name:'Osprey',scientific:'Pandion haliaetus',emoji:'🦅',category:'birds',status:'Least Concern',wiki:'Osprey',lat:39.00,lon:-76.50,habitat:'Chesapeake Bay, Maryland',
+desc:'The only raptor in the world that plunges feet-first into the water and completely submerges to catch fish — and the second most widely distributed bird of prey after the peregrine falcon.',
+facts:['Only raptor that plunges completely underwater to catch fish','Outer toe reverses to hold fish in two toes front, two toes back — aerodynamic grip','Can catch fish on 25% of dives; some individuals reach 70% success rates','Nearly driven to extinction by DDT in the 1960s; now fully recovered across North America','Nests can weigh 180 kg after decades of additions by the same pair']},
+
+{name:'Sandhill Crane',scientific:'Antigone canadensis',emoji:'🦢',category:'birds',status:'Least Concern',wiki:'Sandhill_crane',lat:40.50,lon:-98.50,habitat:'Platte River, Nebraska',
+desc:'Half a million sandhill cranes converge on Nebraska\'s Platte River for 6 weeks each spring in one of the greatest wildlife spectacles in North America, en route to Arctic breeding grounds.',
+facts:['500,000+ gather on the Platte River each spring — one of the greatest bird spectacles in North America','Fossil record extends back 2.5 million years — one of the oldest bird species alive','Mates for life; pairs perform elaborate wing-spreading dances to strengthen their bond','Utter a distinctive rolling bugling call that carries several kilometres','Chicks can walk within hours of hatching and begin flying after just 65 days']},
+
+{name:'Roseate Spoonbill',scientific:'Platalea ajaja',emoji:'🦩',category:'birds',status:'Least Concern',wiki:'Roseate_spoonbill',lat:25.80,lon:-81.00,habitat:'Ten Thousand Islands, Everglades',
+desc:'The only spoonbill in North America, the roseate spoonbill\'s vivid pink plumage led to near-extinction as plume hunters decimated nesting colonies in the 1800s — it has fully recovered today.',
+facts:['Pink colour comes from carotenoids consumed in shrimp and other crustaceans','Hunted to near-extinction in the 1800s for their pink feathers used in ladies\' hats','Sweeps spoon-shaped bill back and forth through shallow water, snapping shut on tactile contact with prey','Can feed in murky water where vision is useless — bills detect prey by touch','One of the most photogenic wading birds in North America; a prime indicator of Everglades ecosystem health']},
+
+{name:'Great Blue Heron',scientific:'Ardea herodias',emoji:'🐦',category:'birds',status:'Least Concern',wiki:'Great_blue_heron',lat:38.50,lon:-76.50,habitat:'Chesapeake Bay, Maryland',
+desc:'North America\'s largest heron stands motionless at the water\'s edge for minutes at a time before striking with a javelin-like thrust of its dagger bill — fast enough to stab fish too large to swallow whole.',
+facts:['Stands motionless for up to 30 minutes between strikes — patience as a hunting strategy','Strike speed so fast that it can drive the bill through a fish in 1/60th of a second','Will eat any prey it can swallow: fish, frogs, mice, gophers, small birds, and large insects','Despite their size, weigh only 2.5 kg — mostly feathers, hollow bones, and long legs','Colonial nesters in "heronries" — one in New York contains over 1,000 nests in a single stand of trees']},
+
+{name:'Trumpeter Swan',scientific:'Cygnus buccinator',emoji:'🦢',category:'birds',status:'Least Concern',wiki:'Trumpeter_swan',lat:43.50,lon:-110.50,habitat:'Yellowstone Lake, Wyoming',
+desc:'North America\'s largest native waterfowl — reduced to 69 birds in 1935 — the trumpeter swan has fully recovered to over 63,000 birds, a conservation success credited to citizen science and wetland protection.',
+facts:['North America\'s largest native waterfowl — wingspan to 3 m; weight to 12.5 kg','Reduced to just 69 known individuals in 1935; now over 63,000 in North America','Named for the resonant bugling trumpeting call — produced by an elongated windpipe looped in the sternum','Pairs stay together for life; if one dies, the survivor may remain solitary for years','Cygnets are born grey and take 3 years to grow their white adult plumage']},
+
+// FISH
+{name:'Great White Shark',scientific:'Carcharodon carcharias',emoji:'🦈',category:'fish',status:'Vulnerable',wiki:'Great_white_shark',lat:37.70,lon:-123.00,habitat:'Farallon Islands, California',
+desc:'The ocean\'s most iconic apex predator is far more threatened by humans than the reverse — and is critical to marine ecosystem balance, preventing the overabundance of seals and sea lions.',
+facts:['Can detect blood diluted to 1 part per 10 million — smelling a single drop in an Olympic pool','Live for over 70 years — far longer than scientists once believed','Can breach completely out of the water when attacking fast-moving prey','5–7 rows of teeth; a lost tooth is replaced within days — estimated 30,000 teeth in a lifetime','Responsible for the fewest unprovoked fatalities of any listed dangerous animal globally']},
+
+{name:'Chinook Salmon',scientific:'Oncorhynchus tshawytscha',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Chinook_salmon',lat:47.50,lon:-121.00,habitat:'Cascade Mountains, Washington',
+desc:'The largest Pacific salmon — weighing up to 60 kg — navigates hundreds of kilometres from ocean to exact natal stream using Earth\'s magnetic field, then dies after spawning to feed the entire forest ecosystem.',
+facts:['Navigate back to their exact natal stream using Earth\'s magnetic field memory — accuracy to the metre','Die after spawning — bodies fertilise the entire riparian forest ecosystem with marine nutrients','The largest Pacific salmon — record rod-caught individual weighed 57 kg','100% of their energy during the upstream migration comes from stored body fat — they do not eat','Grizzly bears, eagles, wolves, and over 130 other species depend on salmon carcasses for nutrition']},
+
+{name:'Lake Sturgeon',scientific:'Acipenser fulvescens',emoji:'🐟',category:'fish',status:'Vulnerable',wiki:'Lake_sturgeon',lat:43.50,lon:-83.50,habitat:'Lake Huron, Michigan',
+desc:'A living fossil unchanged for 136 million years — the lake sturgeon can live for 150 years and weighs up to 120 kg, making individual fish that survived the 1800s potentially still alive today.',
+facts:['Living fossil — essentially unchanged for 136 million years','Can live 150 years — individuals alive today could have been born during the American Civil War','Have no scales — body is protected by bony scutes (armour plates)','Were once so abundant in the Great Lakes they were burned as fuel because they had no commercial value','Electroreceptors on their snout detect the electrical fields of prey buried in mud']},
+
+{name:'Alligator Gar',scientific:'Atractosteus spatula',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Alligator_gar',lat:31.00,lon:-92.00,habitat:'Atchafalaya Basin, Louisiana',
+desc:'A prehistoric beast that can breathe air from the surface — the alligator gar has survived five mass extinctions unchanged, and is the largest freshwater fish in North America, reaching 3 m.',
+facts:['Can breathe atmospheric air from the surface — survives stagnant, oxygen-depleted water','Living fossil unchanged for 100 million years — existed alongside dinosaurs','Largest freshwater fish in North America — grows to 3 m and 160 kg','Double row of large fang-like teeth set in a long alligator-like snout','Roe (eggs) are highly toxic to humans and most mammals — predators eat the flesh, not eggs']},
+
+{name:'American Paddlefish',scientific:'Polyodon spathula',emoji:'🐟',category:'fish',status:'Vulnerable',wiki:'American_paddlefish',lat:38.00,lon:-90.00,habitat:'Missouri River, Missouri',
+desc:'A living fossil that filter-feeds like a whale shark — the American paddlefish uses thousands of electroreceptors on its distinctive paddle-shaped rostrum to detect and follow swarms of zooplankton.',
+facts:['One of the world\'s oldest surviving fish lineages — unchanged since the Cretaceous','Rostrum (paddle) covered in 50,000+ electroreceptors detecting zooplankton swarms','Filter-feeds by swimming open-mouthed at 7 km/h — no active prey chasing needed','Can exceed 90 kg and 2.2 m in length — one of North America\'s largest freshwater fish','A sister species exists only in China (Psephurus gladius) — tragically declared extinct in 2022']},
+
+{name:'Sockeye Salmon',scientific:'Oncorhynchus nerka',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Sockeye_salmon',lat:51.00,lon:-125.00,habitat:'Johnstone Strait, British Columbia',
+desc:'When sockeye salmon return to their natal streams to spawn, they transform from silver ocean fish to brilliant red and green — a dramatic physical change driven by spawning hormones that also accelerates their death.',
+facts:['Transform from silver to vivid crimson and green during their spawning migration','Navigation accuracy: 90% return to their exact birth stream from 1,000+ km away in the Pacific','Up to 10 million Adams River sockeye perform a once-in-four-years dominant run — a spectacle of nature','Some landlocked populations (kokanee) complete their lifecycle in lakes — never entering the ocean','One of the most commercially important fish in the North Pacific — 13 million kg caught annually']},
+
+{name:'Atlantic Horseshoe Crab',scientific:'Limulus polyphemus',emoji:'🦀',category:'fish',status:'Vulnerable',wiki:'Atlantic_horseshoe_crab',lat:39.00,lon:-75.00,habitat:'Delaware Bay, New Jersey',
+desc:'Not actually a crab — and barely changed from its ancestors 450 million years ago — the horseshoe crab\'s bright blue blood is used in every single injectable drug and vaccine tested globally.',
+facts:['Blood is bright blue — copper-based haemocyanin instead of iron-based haemoglobin','Medical industry extracts blood from millions annually — its clotting properties detect bacterial endotoxins','Used to test every injectable drug and vaccine for contamination before human use','Unchanged for 450 million years — survived all five mass extinctions','Delaware Bay hosts the world\'s largest spawning aggregation — hundreds of thousands arrive each May']},
+
+{name:'Largemouth Bass',scientific:'Micropterus salmoides',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Largemouth_bass',lat:31.00,lon:-87.00,habitat:'Alabama River System',
+desc:'The most popular sport fish in North America — responsible for a multibillion-dollar recreational fishing industry — the largemouth bass is also one of the most destructive invasive species when introduced beyond its native range.',
+facts:['Most popular recreational fishing target in North America — generates $60 billion/year in economic activity','Gape can open to almost 90° — allowing the fish to create sudden suction and inhale prey','Change diet completely throughout life: insects as juveniles; fish, frogs, snakes as adults','When introduced outside native range, collapses native fish populations through predation','Tournament-caught fish are weighed alive and released — supporting sustainable angling culture']},
+
+// INSECTS
+{name:'Monarch Butterfly',scientific:'Danaus plexippus',emoji:'🦋',category:'insects',status:'Endangered',wiki:'Monarch_butterfly',lat:19.62,lon:-100.25,habitat:'Monarch Biosphere Reserve, Michoacán',
+desc:'Monarchs perform one of Earth\'s great migrations — flying 4,800 km from Canada to Mexican mountains using a sun compass in their antennae — a journey taking 3–4 generations to complete.',
+facts:['Migrates 4,800 km from Canada to a 12 km² stand of oyamel fir trees in Michoacán, Mexico','No individual completes the full round trip — it takes 3–4 generations in each direction','Navigates using a time-compensated sun compass located in their antennae','Milkweed toxins make them poisonous to most birds — experienced birds avoid them entirely','Eastern population has declined 84% in two decades; Western population declined 99.9%']},
+
+{name:'Luna Moth',scientific:'Actias luna',emoji:'🦋',category:'insects',status:'Least Concern',wiki:'Luna_moth',lat:38.00,lon:-84.00,habitat:'Eastern Deciduous Forests, Kentucky',
+desc:'One of North America\'s most breathtaking insects — the luna moth has no mouth and cannot eat as an adult, surviving just 7–10 days on fat reserves stored as a caterpillar.',
+facts:['Adults have no mouth — cannot eat; survive 7–10 days on fat reserves from the larval stage','Long trailing tail streamers confuse bat echolocation, causing bats to miss the critical body','Wingspan up to 11.4 cm — one of the largest moths in North America','Pale green wings fade rapidly in sunlight — adults rarely seen in daylight for this reason','Named for the moon-like eyespots on its hindwings — "Luna" from the Latin for moon']},
+
+{name:'Eastern Firefly',scientific:'Photinus pyralis',emoji:'✨',category:'insects',status:'Least Concern',wiki:'Photinus_pyralis',lat:35.70,lon:-84.00,habitat:'Great Smoky Mountains, Tennessee',
+desc:'The common firefly produces cold light using luciferin — a chemical reaction so efficient that 100% of the energy becomes light with no heat wasted, making it the most efficient light production in nature.',
+facts:['Light production is 100% efficient — zero heat generated (compare: incandescent bulbs at 10%)','Chemical light is produced by luciferase enzyme oxidising luciferin molecules','Each species has a distinct flashing pattern — females select mates by pattern','Smokies synchronised fireflies (Photinus carolinus) flash in unison — a rare phenomenon drawing thousands of visitors','Larvae glow too — called glowworms; the light warns predators they taste bad']},
+
+{name:'American Bumblebee',scientific:'Bombus pensylvanicus',emoji:'🐝',category:'insects',status:'Vulnerable',wiki:'American_bumblebee',lat:38.00,lon:-95.00,habitat:'Tallgrass Prairie, Kansas',
+desc:'Once one of North America\'s most common pollinators, the American bumblebee has declined 90% in just 20 years and disappeared entirely from many states where it was once abundant.',
+facts:['Declined 90% in abundance over just 20 years — one of the fastest vertebrate-comparable declines for an insect','Extirpated from over 8 eastern states where it was previously common','Uses "buzz pollination" — vibrating wings at 400 Hz to shake pollen loose from flowers no other bee can access','Can thermoregulate — warm their flight muscles by shivering to fly in near-freezing temperatures','Queens can fly even in rain at speeds up to 54 km/h']},
+
+{name:'Mountain Pine Beetle',scientific:'Dendroctonus ponderosae',emoji:'🪲',category:'insects',status:'Least Concern',wiki:'Mountain_pine_beetle',lat:50.00,lon:-119.00,habitat:'Interior British Columbia',
+desc:'A native insect that has become one of the most ecologically devastating forces in North American history — killing over 70,000 km² of pine forest in a single outbreak driven by warming temperatures.',
+facts:['Has killed over 70,000 km² of BC pine forest — the largest insect outbreak in North American history','Infestation scale increased 100-fold as warming winters allowed beetles to survive at higher altitudes','Trees signal attack with chemical defences — overwhelming defences by mass attack (3–4 beetles per cm²)','Killed trees turn red then grey — satellite images reveal the colour change across entire mountain ranges','The dead trees become both carbon sources and wildfire fuel — creating a climate-change feedback loop']},
+
+{name:'Cecropia Moth',scientific:'Hyalophora cecropia',emoji:'🦋',category:'insects',status:'Least Concern',wiki:'Cecropia_moth',lat:42.00,lon:-85.00,habitat:'Deciduous Forests, Michigan',
+desc:'The largest moth native to North America — with a wingspan up to 16 cm — the cecropia moth has no functional mouth as an adult and lives for only 2 weeks, guided entirely by an extraordinarily sensitive sense of smell.',
+facts:['Largest moth native to North America — wingspan up to 16 cm','Adults have no functional mouth — cannot eat; survive 2 weeks on larval fat reserves','Males can detect a single molecule of female pheromone from over 3 km away','Silken cocoon is so tough that Iroquois people used it as a rattle in ceremonies','Spectacular wings bear eyespots, white crescent moons, and red and tan banding']},
+
+// AMPHIBIANS
+{name:'American Bullfrog',scientific:'Lithobates catesbeianus',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'American_bullfrog',lat:29.95,lon:-90.07,habitat:'Mississippi Delta, Louisiana',
+desc:'North America\'s largest native frog will eat almost anything it can overpower — a voracious predator now listed as one of the world\'s 100 worst invasive species on every continent where it was introduced.',
+facts:['Largest frog in North America — up to 20 cm long; will eat anything fitting in its mouth','Will swallow prey up to half its own body size: fish, snakes, small birds, and other frogs','Listed among the world\'s 100 worst invasive species on 4 continents where it was introduced','Call carries up to 1 km on a still night — the characteristic "jug-o-rum" sound of eastern wetlands','Tadpoles spend 1–2 full years before metamorphosis — much longer than most North American frogs']},
+
+{name:'Eastern Hellbender',scientific:'Cryptobranchus alleganiensis',emoji:'🐸',category:'amphibians',status:'Near Threatened',wiki:'Hellbender',lat:37.00,lon:-80.00,habitat:'Appalachian Mountain Streams, Virginia',
+desc:'North America\'s largest salamander and one of the largest in the world — the hellbender breathes entirely through its wrinkled skin and indicates clean stream water quality wherever it survives.',
+facts:['North America\'s largest salamander — up to 74 cm and 2.5 kg','Breathes entirely through folds of loose skin — has no functional gills as an adult','Males excavate nests under large flat rocks and guard eggs fiercely for 2–3 months','An indicator species — only survives in clean, well-oxygenated streams with undisturbed substrate','Population has declined 75% in the past 30 years; threatened by sedimentation and disease']},
+
+{name:'Axolotl',scientific:'Ambystoma mexicanum',emoji:'🐸',category:'amphibians',status:'Critically Endangered',wiki:'Axolotl',lat:19.45,lon:-99.10,habitat:'Lake Xochimilco, Mexico City',
+desc:'The axolotl is neotenic — it retains its larval features (external gills, aquatic life) permanently, never undergoing metamorphosis — and can regrow entire limbs, lungs, and portions of its brain with no scarring.',
+facts:['Retains larval features permanently — a phenomenon called neoteny; never metamorphoses under normal conditions','Can regenerate complete limbs, lungs, portions of its heart and brain — without scarring','Wild population exists only in Lake Xochimilco, Mexico City — and is Critically Endangered','Used in medical research worldwide to understand limb regeneration and spinal cord repair','Can be induced to metamorphose with hormone injections — but will not survive long once terrestrial']},
+
+{name:'California Red-legged Frog',scientific:'Rana draytonii',emoji:'🐸',category:'amphibians',status:'Vulnerable',wiki:'California_red-legged_frog',lat:37.50,lon:-122.00,habitat:'Marin County, California',
+desc:'The frog that inspired Mark Twain\'s famous story "The Celebrated Jumping Frog of Calaveras County" is now imperiled by introduced bullfrogs, disease, and habitat loss throughout California.',
+facts:['The frog featured in Mark Twain\'s famous 1865 short story — iconic in American literature','Largest native frog in the western United States — females up to 13 cm','Eliminated from 70% of historic range by introduced bullfrogs, disease, and drought','Protected under the Endangered Species Act since 1996','Can leap 1.7 m — proportionally one of the highest jumps relative to body size of any North American frog']
+}
+];
+
+const SC={'Least Concern':'LC','Near Threatened':'NT','Vulnerable':'VU','Endangered':'EN','Critically Endangered':'CR'};
+let activeCat='all',searchQ='',currentList=[],currentModal=null;
+const disc=new Set(JSON.parse(localStorage.getItem('ae_na_disc')||'[]'));
+const wiki={};let map=null,markers=[];
+async function getWikiImg(t){if(wiki[t]!==undefined)return wiki[t];try{const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);const d=await r.json();const u=d.originalimage?.source||d.thumbnail?.source||null;wiki[t]=u;return u;}catch{wiki[t]=null;return null;}}
+function initMap(){map=L.map('world-map',{center:[45,-95],zoom:3,minZoom:2,maxZoom:18});L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:18}).addTo(map);L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{attribution:'',maxZoom:18,opacity:0.55}).addTo(map);updateMarkers();map.on('zoomend moveend',updateMarkers);}
+function updateMarkers(){markers.forEach(m=>map.removeLayer(m));markers=[];if(map.getZoom()<3)return;filtered().forEach(a=>{const el=L.divIcon({html:`<div class="animal-map-marker${disc.has(ANIMALS.indexOf(a))?' discovered':''}" title="${a.name}">${catIcon(a.category)}</div>`,className:'',iconSize:[34,34],iconAnchor:[17,17]});const m=L.marker([a.lat,a.lon],{icon:el}).addTo(map);m.on('click',()=>openModal(ANIMALS.indexOf(a)));markers.push(m);});}
+function filtered(){const q=searchQ.toLowerCase().trim();return ANIMALS.filter(a=>{const cm=activeCat==='all'||a.category===activeCat;const sm=!q||a.name.toLowerCase().includes(q)||a.scientific.toLowerCase().includes(q)||a.desc.toLowerCase().includes(q)||a.facts.some(f=>f.toLowerCase().includes(q));return cm&&sm;});}
+function renderCards(){const grid=document.getElementById('cards-grid');const empty=document.getElementById('empty-state');const list=filtered();currentList=list;document.getElementById('results-count').textContent=list.length+' animal'+(list.length===1?'':'s');document.getElementById('results-title').textContent=activeCat==='all'?'All North American Animals':'N. American '+cap(activeCat);document.getElementById('reset-btn').style.display=activeCat==='all'?'none':'inline-block';if(!list.length){grid.innerHTML='';empty.style.display='block';return;}empty.style.display='none';grid.innerHTML=list.map((a,i)=>{const idx=ANIMALS.indexOf(a);return `<div class="card" onclick="openModal(${idx})" style="animation-delay:${i*22}ms"><div class="card-photo bg-${a.category}"><span class="card-fallback">${catIcon(a.category)}</span><img data-wiki="${a.wiki}" alt="${a.name}" loading="lazy"/></div><div class="card-overlay"><p>${a.facts[0].substring(0,88)}…</p><small>TAP TO EXPLORE <svg class="svg-ic"><use href="#ic-arrow-right"/></svg></small></div><div class="card-info">${disc.has(idx)?'<span class="card-check"><svg class="svg-ic"><use href="#ic-check"/></svg></span>':''}<div class="card-name">${a.name}</div><div class="card-row"><span class="badge b-${a.category}">${a.category}</span></div></div></div>`;}).join('');grid.querySelectorAll('img[data-wiki]').forEach(img=>{getWikiImg(img.dataset.wiki).then(u=>{if(u){img.src=u;img.onload=()=>{img.classList.add('loaded');img.previousElementSibling.style.opacity=0};}});});}
+function openModal(idx){const a=ANIMALS[idx];const sc=SC[a.status]||'LC';const inL=currentList.indexOf(a);const pr=inL>0?ANIMALS.indexOf(currentList[inL-1]):null;const nx=inL<currentList.length-1?ANIMALS.indexOf(currentList[inL+1]):null;const sat=`https://maps.google.com/maps?q=${a.lat},${a.lon}&t=k`;const sv=`https://maps.google.com/maps?q=${a.lat},${a.lon}&layer=c&cbll=${a.lat},${a.lon}`;document.getElementById('modal-content').innerHTML=`<div class="modal-hero bg-${a.category}"><div class="fallback-hero">${catIcon(a.category)}</div><img data-wiki="${a.wiki}" alt="${a.name}"/><div class="modal-hero-grad"></div><div class="modal-hero-title"><h2>${a.name}</h2><em>${a.scientific}</em></div></div><div class="modal-body"><div class="modal-badges"><span class="badge b-${a.category}">${a.category}</span><span class="s-badge s-${sc}">${a.status}</span></div><p class="modal-desc">${a.desc}</p><div class="facts-head">Wild Facts</div><ul class="facts-list" id="facts-list">${a.facts.map(f=>`<li>${f}</li>`).join('')}</ul><div class="habitat-section"><div class="habitat-title">Habitat</div><div class="habitat-name"><svg class="svg-ic"><use href="#ic-pin"/></svg> ${a.habitat}</div><div class="habitat-btns"><a href="${sat}" target="_blank" class="habitat-btn hbtn-sat"><svg class="svg-ic"><use href="#ic-satellite"/></svg> Google Maps Satellite</a><a href="${sv}" target="_blank" class="habitat-btn hbtn-sv"><svg class="svg-ic"><use href="#ic-camera"/></svg> Google Street View</a></div></div><div class="modal-nav"><button onclick="event.stopPropagation();openModal(${pr})" ${pr===null?'disabled style="opacity:.3"':''}><svg class="svg-ic"><use href="#ic-arrow-left"/></svg> Prev</button><button onclick="event.stopPropagation();openModal(${nx})" ${nx===null?'disabled style="opacity:.3"':''}>Next <svg class="svg-ic"><use href="#ic-arrow-right"/></svg></button></div></div>`;document.getElementById('modal-overlay').classList.add('open');document.body.style.overflow='hidden';currentModal=idx;disc.add(idx);localStorage.setItem('ae_na_disc',JSON.stringify([...disc]));updateDiscUI();const img=document.querySelector('#modal-content .modal-hero img');getWikiImg(a.wiki).then(u=>{if(u&&img){img.src=u;img.onload=()=>img.classList.add('loaded');}});setTimeout(()=>{document.querySelectorAll('#facts-list li').forEach((li,i)=>{setTimeout(()=>li.classList.add('visible'),i*70);});},180);}
+function updateDiscUI(){const n=disc.size,t=ANIMALS.length;document.getElementById('disc-count').textContent=`${n}/${t}`;document.getElementById('disc-text').textContent=n;document.getElementById('disc-total').textContent=t;document.getElementById('disc-bar').style.width=`${(n/t)*100}%`;}
+function toggleDisc(){const p=document.getElementById('disc-panel');p.style.display=p.style.display==='block'?'none':'block';}
+function surpriseMe(){const l=filtered();if(!l.length)return;openModal(ANIMALS.indexOf(l[Math.floor(Math.random()*l.length)]));}
+function resetCat(){activeCat='all';document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active',p.dataset.cat==='all'));renderCards();updateMarkers();}
+function cap(s){return s[0].toUpperCase()+s.slice(1)}
+function initTicker(){const facts=ANIMALS.flatMap(a=>a.facts.map(f=>a.name+' — '+f)).sort(()=>Math.random()-.5);const track=document.getElementById('ticker-track');const el=document.getElementById('ticker');let idx=0,anim=null,paused=false;function playNext(){el.style.transition='opacity 0.4s';el.style.opacity='0';setTimeout(()=>{el.textContent=facts[idx++%facts.length];el.style.transition='none';const cw=track.clientWidth;el.style.transform=`translateX(${cw}px)`;void el.offsetWidth;el.style.transition='opacity 0.4s';el.style.opacity='1';const tw=el.scrollWidth;const dur=(cw+tw)/50*1000;if(anim)anim.cancel();anim=el.animate([{transform:`translateX(${cw}px)`},{transform:`translateX(-${tw}px)`}],{duration:dur,easing:'linear',fill:'forwards'});if(paused)anim.pause();anim.onfinish=()=>setTimeout(playNext,400);},400);}track.addEventListener('mouseenter',()=>{paused=true;if(anim)anim.pause();});track.addEventListener('mouseleave',()=>{paused=false;if(anim)anim.play();});playNext();}
+document.addEventListener('DOMContentLoaded',()=>{initMap();renderCards();updateDiscUI();initTicker();});
+document.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',function(){document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));this.classList.add('active');activeCat=this.dataset.cat;renderCards();updateMarkers();}));
+document.getElementById('search-input').addEventListener('input',function(){searchQ=this.value;renderCards();updateMarkers();});
+document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target.id==='modal-overlay')closeModal();});
+document.getElementById('modal-close').addEventListener('click',closeModal);
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');document.body.style.overflow='';currentModal=null;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.key==='ArrowRight'&&currentModal!==null){const i=currentList.indexOf(ANIMALS[currentModal]);if(i<currentList.length-1)openModal(ANIMALS.indexOf(currentList[i+1]));}if(e.key==='ArrowLeft'&&currentModal!==null){const i=currentList.indexOf(ANIMALS[currentModal]);if(i>0)openModal(ANIMALS.indexOf(currentList[i-1]));}});
+</script>
+<script src="paw-cursor.js" defer></script>
+</body>
+</html>

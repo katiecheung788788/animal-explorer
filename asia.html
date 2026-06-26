@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Animal Explorer — Asia</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#090f09;--card:#121e12;--border:#1e341e;--text:#ddeacc;--sub:#6a8a5a;--accent:#f0d07a;
+  --mammal:#2e6e20;--reptile:#7a3a10;--bird:#164880;--fish:#086060;--insect:#706000;--amphibian:#4a1878}
+body{background:var(--bg);color:var(--text);font-family:Georgia,serif;min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;padding:.9rem 1.4rem;background:#0d160d;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:500}
+.back-btn{padding:.32rem .85rem;background:transparent;border:1px solid var(--border);color:var(--sub);font:.78rem Arial,sans-serif;border-radius:20px;cursor:pointer;transition:all .15s}
+.back-btn:hover{border-color:var(--accent);color:var(--accent)}
+.logo{font-size:1.2rem;color:var(--accent)}
+.disc-badge{padding:.3rem .75rem;border:1px solid rgba(240,208,122,.25);border-radius:20px;font:.78rem Arial,sans-serif;color:var(--accent);cursor:pointer;background:rgba(240,208,122,.06);transition:background .2s}
+.disc-badge:hover{background:rgba(240,208,122,.12)}
+.disc-panel{display:none;padding:.6rem 1.4rem;background:#0a130a;border-bottom:1px solid var(--border)}
+.disc-bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:.3rem}
+.disc-bar{height:100%;background:linear-gradient(90deg,#3a7820,var(--accent));border-radius:3px;transition:width .5s}
+.disc-panel p{font:.73rem Arial,sans-serif;color:var(--sub)}.disc-panel p span{color:var(--accent)}
+.ticker-wrap{display:flex;align-items:center;gap:.5rem;font:italic .76rem/1.3 Arial,sans-serif;color:var(--sub);width:300px;flex-shrink:0}
+.ticker-label{color:var(--accent);font-style:normal;font-weight:bold;white-space:nowrap}
+#ticker-track{overflow:hidden;flex:1;min-width:0;position:relative;height:1.3em;cursor:default}
+#ticker{position:absolute;white-space:nowrap;will-change:transform;opacity:0}
+.controls{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.65rem 1.4rem;background:#0d160d;border-bottom:1px solid var(--border)}
+.search-wrap{position:relative;flex:1;min-width:150px;max-width:240px}
+.search-wrap svg{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--sub);fill:none;pointer-events:none}
+.search-input{width:100%;padding:.36rem .75rem .36rem 1.9rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;color:var(--text);font:.8rem Arial,sans-serif;outline:none;transition:border-color .2s}
+.search-input:focus{border-color:var(--accent)}.search-input::placeholder{color:var(--sub)}
+.pill{padding:.32rem .8rem;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--sub);font:.76rem Arial,sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap}
+.pill:hover{border-color:var(--accent);color:var(--accent)}
+.pill.active[data-cat=all]{background:var(--accent);border-color:var(--accent);color:#111;font-weight:bold}
+.pill.active[data-cat=mammals]{background:var(--mammal);border-color:var(--mammal);color:#fff;font-weight:bold}
+.pill.active[data-cat=reptiles]{background:var(--reptile);border-color:var(--reptile);color:#fff;font-weight:bold}
+.pill.active[data-cat=birds]{background:var(--bird);border-color:var(--bird);color:#fff;font-weight:bold}
+.pill.active[data-cat=fish]{background:var(--fish);border-color:var(--fish);color:#fff;font-weight:bold}
+.pill.active[data-cat=insects]{background:var(--insect);border-color:var(--insect);color:#fff;font-weight:bold}
+.pill.active[data-cat=amphibians]{background:var(--amphibian);border-color:var(--amphibian);color:#fff;font-weight:bold}
+.surprise-btn{padding:.36rem .95rem;border:none;border-radius:20px;background:linear-gradient(135deg,#3a1880,#7030d0);color:#fff;font:.76rem Arial,sans-serif;cursor:pointer;white-space:nowrap}
+.map-section{border-bottom:2px solid var(--border)}
+#world-map{height:380px;width:100%}
+.map-hint{text-align:center;padding:.3rem;color:var(--sub);font:1rem Arial,sans-serif;background:#0b140b;border-bottom:1px solid var(--border)}
+.leaflet-container{background:#060e1e}
+.animal-map-marker{width:34px;height:34px;border-radius:50%;background:rgba(9,15,9,.9);border:2px solid rgba(240,208,122,.5);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;transition:transform .15s;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+.animal-map-marker:hover{transform:scale(1.25);border-color:var(--accent)}
+.animal-map-marker.discovered{border-color:var(--accent);background:rgba(240,208,122,.15)}
+.results-section{padding:1.2rem 1.4rem}
+.results-header{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:.9rem}
+.results-header h2{font-size:1.1rem;color:var(--accent)}
+#results-count{color:var(--sub);font:.78rem Arial,sans-serif}
+#reset-btn{margin-left:auto;padding:.26rem .7rem;background:transparent;border:1px solid var(--border);color:var(--sub);font:.74rem Arial,sans-serif;border-radius:20px;cursor:pointer;transition:all .15s}
+#reset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.9rem}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.card{border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid var(--border);background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.4);animation:slideUp .3s ease backwards;transition:box-shadow .3s,border-color .25s;position:relative}
+.card:hover{box-shadow:0 10px 28px rgba(0,0,0,.6);border-color:rgba(240,208,122,.35)}
+.card-photo{height:155px;position:relative;overflow:hidden}
+.card-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:4.5rem;z-index:1;transition:opacity .3s}
+.card-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;transition:transform .5s,opacity .3s}
+.card:hover .card-photo img{transform:scale(1.07)}
+.card-overlay{position:absolute;inset:0 0 auto 0;height:155px;background:rgba(5,10,5,.88);backdrop-filter:blur(2px);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:.9rem;text-align:center;z-index:3;opacity:0;transition:opacity .2s}
+.card:hover .card-overlay{opacity:1}
+.card-overlay p{font:.78rem/1.5 Arial,sans-serif;color:#dde;margin-bottom:.4rem}
+.card-overlay small{font:.68rem Arial,sans-serif;color:var(--accent)}
+.card-info{padding:.6rem .85rem .7rem;position:relative}
+.card-name{font-size:.88rem;margin-bottom:.28rem}
+.card-row{display:flex;align-items:center;justify-content:space-between;gap:.4rem}
+.card-check{position:absolute;top:.5rem;right:.7rem;width:17px;height:17px;border-radius:50%;background:var(--accent);color:#111;font:.7rem Arial,sans-serif;font-weight:bold;display:flex;align-items:center;justify-content:center}
+.badge{display:inline-block;padding:.08rem .42rem;border-radius:10px;font:bold .64rem/1.4 Arial,sans-serif;text-transform:uppercase;letter-spacing:.3px}
+.b-mammals{background:rgba(46,110,32,.28);color:#70d450;border:1px solid rgba(46,110,32,.45)}
+.b-reptiles{background:rgba(122,58,16,.28);color:#e08040;border:1px solid rgba(122,58,16,.45)}
+.b-birds{background:rgba(22,72,128,.28);color:#58b0f0;border:1px solid rgba(22,72,128,.45)}
+.b-fish{background:rgba(8,96,96,.28);color:#30d8d8;border:1px solid rgba(8,96,96,.45)}
+.b-insects{background:rgba(112,96,0,.28);color:#e0cc30;border:1px solid rgba(112,96,0,.45)}
+.b-amphibians{background:rgba(74,24,120,.28);color:#c070f0;border:1px solid rgba(74,24,120,.45)}
+.s-badge{display:inline-block;padding:.08rem .42rem;border-radius:10px;font:bold .64rem/1.4 Arial,sans-serif;text-transform:uppercase;letter-spacing:.3px}
+.s-LC{background:rgba(32,110,32,.2);color:#60d060;border:1px solid rgba(32,110,32,.4)}
+.s-NT{background:rgba(190,170,0,.15);color:#d8c840;border:1px solid rgba(190,170,0,.3)}
+.s-VU{background:rgba(190,110,0,.15);color:#e09030;border:1px solid rgba(190,110,0,.3)}
+.s-EN{background:rgba(190,55,0,.15);color:#e05828;border:1px solid rgba(190,55,0,.3)}
+.s-CR{background:rgba(190,0,0,.15);color:#e02828;border:1px solid rgba(190,0,0,.3)}
+.bg-mammals{background:linear-gradient(135deg,#0e220a,#183818)}.bg-reptiles{background:linear-gradient(135deg,#200e04,#381808)}
+.bg-birds{background:linear-gradient(135deg,#060e28,#0e1e44)}.bg-fish{background:linear-gradient(135deg,#021414,#063030)}
+.bg-insects{background:linear-gradient(135deg,#141000,#282002)}.bg-amphibians{background:linear-gradient(135deg,#0e041c,#1c0838)}
+.empty-state{text-align:center;padding:3rem 2rem;color:var(--sub);font:1rem Arial,sans-serif}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:1000;padding:1rem;opacity:0;pointer-events:none;transition:opacity .22s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:#111c11;border:1px solid #2a422a;border-radius:16px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;position:relative;transform:scale(.94) translateY(10px);transition:transform .22s}
+.modal-overlay.open .modal{transform:scale(1) translateY(0)}
+.modal-close{position:absolute;top:.8rem;right:.8rem;background:rgba(255,255,255,.1);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font:.92rem Arial,sans-serif;line-height:30px;text-align:center;transition:background .15s;z-index:2}
+.modal-close:hover{background:rgba(255,255,255,.22)}
+.modal-hero{height:230px;position:relative;overflow:hidden;border-radius:16px 16px 0 0}
+.modal-hero img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:1;opacity:0;transition:opacity .3s}
+.modal-hero img.loaded{opacity:1}
+.modal-hero .fallback-hero{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:6.5rem;z-index:0}
+.modal-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(17,28,17,.9) 0%,transparent 55%);z-index:2}
+.modal-hero-title{position:absolute;bottom:.9rem;left:1.3rem;z-index:3}
+.modal-hero-title h2{font-size:1.6rem;line-height:1.1;margin-bottom:.25rem}
+.modal-hero-title em{color:var(--sub);font:.85rem Arial,sans-serif}
+.modal-body{padding:1.1rem 1.4rem 1.6rem}
+.modal-badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem}
+.modal-desc{font:.88rem/1.72 Georgia,serif;margin-bottom:1rem;color:#ccd8bb}
+.facts-head{font:bold .66rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.45rem}
+.facts-list{list-style:none;margin-bottom:.9rem}
+.facts-list li{display:flex;gap:.5rem;align-items:flex-start;padding:.34rem 0;border-bottom:1px solid var(--border);font:.82rem/1.55 Arial,sans-serif;opacity:0;transform:translateX(-8px);transition:opacity .3s,transform .3s}
+.facts-list li.visible{opacity:1;transform:none}.facts-list li:last-child{border-bottom:none}
+.facts-list li::before{content:'▸';color:var(--accent);flex-shrink:0;margin-top:1px}
+.habitat-section{margin-top:.7rem;padding:.75rem;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px}
+.habitat-title{font:bold .66rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.35rem}
+.habitat-name{font:.8rem Arial,sans-serif;color:var(--sub);margin-bottom:.55rem}
+.habitat-btns{display:flex;gap:.45rem;flex-wrap:wrap}
+.habitat-btn{padding:.33rem .82rem;border-radius:20px;border:none;cursor:pointer;font:.74rem Arial,sans-serif;font-weight:bold;display:flex;align-items:center;gap:.32rem;transition:transform .15s;text-decoration:none}
+.habitat-btn:hover{transform:translateY(-2px)}
+.hbtn-sat{background:rgba(19,66,26,.8);color:#90d890}.hbtn-sv{background:rgba(66,19,24,.8);color:#d89090}
+.modal-nav{display:flex;justify-content:space-between;margin-top:1rem;padding-top:.7rem;border-top:1px solid var(--border)}
+.modal-nav button{padding:.38rem .95rem;background:transparent;border:1px solid var(--border);color:var(--sub);font:.78rem Arial,sans-serif;border-radius:20px;cursor:pointer;transition:all .15s}
+.modal-nav button:hover{border-color:var(--accent);color:var(--accent)}
+@media(max-width:560px){.cards-grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:.6rem}.card-photo,.card-overlay{height:125px}#world-map{height:240px}}
+</style>
+<script src="icons.js"></script>
+<link rel="stylesheet" href="theme.css"/>
+</head>
+<body>
+<header>
+  <a class="back-btn" href="hub.html">← All Continents</a>
+  <div class="logo">🌏 Asia — Wildlife Explorer</div>
+  <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
+    <div class="ticker-wrap"><span class="ticker-label">Fact:</span><div id="ticker-track"><span id="ticker"></span></div></div>
+    <div class="disc-badge" onclick="toggleDisc()"><span id="disc-count">0/60</span> explored</div>
+  </div>
+</header>
+<div class="disc-panel" id="disc-panel">
+  <div class="disc-bar-wrap"><div class="disc-bar" id="disc-bar" style="width:0%"></div></div>
+  <p>Explored <span id="disc-text">0</span> of <span id="disc-total">60</span> Asian animals</p>
+</div>
+<div class="controls">
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22" stroke-linecap="round"/></svg>
+    <input class="search-input" id="search-input" type="text" placeholder="Search animals…" autocomplete="off"/>
+  </div>
+  <button class="pill active" data-cat="all">All</button>
+  <button class="pill" data-cat="mammals">🐘 Mammals</button>
+  <button class="pill" data-cat="reptiles">🐊 Reptiles</button>
+  <button class="pill" data-cat="birds">🦅 Birds</button>
+  <button class="pill" data-cat="fish">🐟 Fish</button>
+  <button class="pill" data-cat="insects">🪲 Insects</button>
+  <button class="pill" data-cat="amphibians">🐸 Amphibians</button>
+  <button class="surprise-btn" onclick="surpriseMe()">🎲 Surprise!</button>
+</div>
+<div class="map-section"><div id="world-map"></div></div>
+<p class="map-hint">🛰 Satellite imagery · Click animal pins to explore</p>
+<section class="results-section">
+  <div class="results-header">
+    <h2 id="results-title">All Asian Animals</h2>
+    <span id="results-count"></span>
+    <button id="reset-btn" style="display:none" onclick="resetCat()">✕ Clear filter</button>
+  </div>
+  <div class="cards-grid" id="cards-grid"></div>
+  <div class="empty-state" id="empty-state" style="display:none">🔭 No animals found.</div>
+</section>
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" role="dialog">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const ANIMALS=[
+// MAMMALS
+{name:'Bengal Tiger',scientific:'Panthera tigris tigris',emoji:'🐅',category:'mammals',status:'Endangered',wiki:'Bengal_tiger',lat:21.95,lon:89.18,habitat:'Sundarbans, Bangladesh',
+desc:'India and Bangladesh\'s apex predator, with a stripe pattern as unique as a fingerprint and a roar that carries 3 km through dense jungle.',
+facts:['No two tigers share the same stripe pattern — as individual as a fingerprint','Excellent swimmers — actively seek water and can cross rivers 7 km wide','A roar carries 3 km through dense jungle vegetation','Saliva has mild antiseptic properties — they lick their own wounds','A single territory can span over 100 km² in suitable habitat']},
+
+{name:'Giant Panda',scientific:'Ailuropoda melanoleuca',emoji:'🐼',category:'mammals',status:'Vulnerable',wiki:'Giant_panda',lat:33.85,lon:107.60,habitat:'Qinling Mountains, China',
+desc:'A conservation icon that spends up to 16 hours a day eating bamboo despite having a digestive system designed for meat — requiring constant feeding to survive.',
+facts:['Eat 12–38 kg of bamboo every single day to meet nutritional needs','Have a "false thumb" — enlarged wrist bone that acts like a thumb for gripping bamboo','Wild population has recovered to over 1,800 individuals thanks to intensive protection','Newborns weigh just 100 g — 1/900th of the mother\'s weight','Despite diet, genetically and physiologically classified as carnivores']},
+
+{name:'Snow Leopard',scientific:'Panthera uncia',emoji:'🐱',category:'mammals',status:'Vulnerable',wiki:'Snow_leopard',lat:27.90,lon:86.90,habitat:'Himalayas, Nepal',
+desc:'The "ghost of the mountains" is so elusive that complete wild population counts have never been achieved — estimated at just 4,000–6,500 across 12 countries.',
+facts:['Tail nearly as long as the body — used for balance on cliffs and as a blanket in cold','Can leap 15 m horizontally and 6 m vertically across mountain terrain','Cannot roar — makes a distinctive chuffing sound called "prusten" during social encounters','Paws are enormously wide and well-furred — natural snowshoes','Only large cat to share its range with the snow leopard is the common leopard']},
+
+{name:'Red Panda',scientific:'Ailurus fulgens',emoji:'🐾',category:'mammals',status:'Endangered',wiki:'Red_panda',lat:27.50,lon:88.50,habitat:'Eastern Himalayas, Nepal',
+desc:'Unrelated to the giant panda, the red panda is the sole member of its own family — a secretive, rust-coloured tree-dweller that was the world\'s first animal called "panda."',
+facts:['The original "panda" — the name applied to giant pandas nearly 50 years later','Has a false thumb (extended wrist bone) identical in structure to the giant panda\'s','Spends almost its entire life in trees, descending only to forage on the ground','Uses its long bushy tail as a blanket in freezing mountain winters','Has been declining at 50% per generation; fewer than 10,000 remain in the wild']},
+
+{name:'Japanese Macaque',scientific:'Macaca fuscata',emoji:'🐒',category:'mammals',status:'Least Concern',wiki:'Japanese_macaque',lat:36.74,lon:138.20,habitat:'Jigokudani Hot Springs, Nagano',
+desc:'Snow monkeys — the world\'s most northerly non-human primates — bathe in volcanic hot springs in winter and have developed cultural traditions passed down through generations.',
+facts:['Most northerly non-human primate on Earth — survive winters of −15°C','Bathe in volcanic hot springs during snowy winters — discovered in the 1960s','Wash food before eating — a cultural behaviour first observed in a single female','Troops develop unique local traditions transmitted across generations','Red face colour intensifies with excitement, arousal, and in cold temperatures']},
+
+{name:'Proboscis Monkey',scientific:'Nasalis larvatus',emoji:'🐒',category:'mammals',status:'Endangered',wiki:'Proboscis_monkey',lat:5.41,lon:118.01,habitat:'Kinabatangan River, Borneo',
+desc:'Found only in Borneo\'s mangrove and riparian forests, the proboscis monkey is famous for its enormous pendulous nose which amplifies calls and signals health to potential mates.',
+facts:['Found only on the island of Borneo — nowhere else on Earth','A male\'s nose can grow over 10 cm long — largest nose-to-body ratio of any primate','The large nose amplifies vocalisations and helps regulate body temperature','Excellent swimmers — the only primate known to regularly cross wide rivers','Population has declined 50% in 40 years due to mangrove deforestation']},
+
+{name:'Asian Elephant',scientific:'Elephas maximus',emoji:'🐘',category:'mammals',status:'Endangered',wiki:'Asian_elephant',lat:7.97,lon:80.82,habitat:'Minneriya National Park, Sri Lanka',
+desc:'The largest land animal in Asia has been revered in culture and religion for millennia, and is critical to forest ecosystems as a seed disperser and landscape engineer.',
+facts:['Ears shaped like the Indian subcontinent — distinct from the larger fan-shaped African ears','Only some males grow tusks, unlike African elephants where both sexes may have them','Have been domesticated and worked alongside humans for over 4,000 years','Memory is exceptional — recognise hundreds of individuals and remember routes over decades','A keystone species whose feeding creates clearings that increase forest biodiversity']},
+
+{name:'Bornean Orangutan',scientific:'Pongo pygmaeus',emoji:'🦧',category:'mammals',status:'Critically Endangered',wiki:'Bornean_orangutan',lat:1.50,lon:110.50,habitat:'Danum Valley, Borneo',
+desc:'The world\'s largest arboreal mammal spends most of its life in the forest canopy — and shares 96.9% of its DNA with humans, making it our third-closest living relative.',
+facts:['World\'s largest tree-dwelling mammal — males up to 90 kg live almost entirely in the canopy','Share 96.9% DNA with humans — our third closest relative after chimpanzees and bonobos','Young remain with their mothers for 6–8 years — the longest of any non-human animal','Build a new sleeping nest in the trees every single night','Population has declined 50% in just 60 years — fewer than 104,000 remain']},
+
+{name:'Indian Rhinoceros',scientific:'Rhinoceros unicornis',emoji:'🦏',category:'mammals',status:'Vulnerable',wiki:'Indian_rhinoceros',lat:26.60,lon:92.90,habitat:'Kaziranga National Park, Assam',
+desc:'The one-horned rhinoceros was reduced to fewer than 200 individuals by 1900 and has recovered to over 3,700 — one of Asia\'s greatest conservation triumphs.',
+facts:['Reduced to under 200 animals by 1900; now over 3,700 — a landmark conservation story','Single horn can reach 57 cm in length','Fold-armoured skin resembles plate mail but is actually surprisingly pliable','The Kaziranga NP in Assam holds two-thirds of the world\'s entire population','Excellent swimmers — readily cross rivers and sometimes feed on aquatic vegetation']},
+
+{name:'Clouded Leopard',scientific:'Neofelis nebulosa',emoji:'🐆',category:'mammals',status:'Vulnerable',wiki:'Clouded_leopard',lat:27.50,lon:88.00,habitat:'Bhutan Foothills',
+desc:'The clouded leopard has the largest canine teeth relative to skull size of any living cat — the same proportions as the extinct sabre-toothed tiger — and is Asia\'s most agile tree-climbing cat.',
+facts:['Largest canine teeth relative to skull size of any living cat — sabre-tooth proportions','Can climb down trees headfirst, using flexible ankles that rotate 180°','National symbol of Meghalaya, India','Has been observed hanging upside-down from branches to feed, using all four legs','Almost never seen in the wild — camera trap images are extremely rare']},
+
+{name:'Binturong',scientific:'Arctictis binturong',emoji:'🦦',category:'mammals',status:'Vulnerable',wiki:'Binturong',lat:4.50,lon:117.50,habitat:'Danum Valley, Borneo',
+desc:'Nicknamed the "bearcat" despite being related to neither — the binturong is one of only two carnivores with a prehensile tail, and its scent glands smell exactly like buttered popcorn.',
+facts:['One of only two carnivores with a fully prehensile tail — can hang from branches by it','Scent marking glands produce a chemical identical to 2-acetyl-1-pyrroline — the compound in freshly baked popcorn','Neither bear nor cat — member of the family Viverridae, related to civets','Females can delay embryo implantation to time birth with good conditions','Can rotate its hind feet backwards to grip branches when descending headfirst']},
+
+{name:'Sun Bear',scientific:'Helarctos malayanus',emoji:'🐻',category:'mammals',status:'Vulnerable',wiki:'Sun_bear',lat:4.00,lon:116.00,habitat:'Borneo Rainforest',
+desc:'The world\'s smallest bear species is also the most secretive — rarely photographed in the wild and known for its extraordinarily long tongue used to extract honey from tree hollows.',
+facts:['World\'s smallest bear — adults weigh just 25–65 kg; stand 60–70 cm at the shoulder','Tongue reaches 25 cm in length — used to extract honey, termites, and bee larvae','Yellow chest patch is unique to each individual — acts as an identity badge','Powerful curved claws are used entirely for climbing, not hunting','Highly secretive; their presence is often only revealed by claw marks on trees']},
+
+{name:'Golden Snub-nosed Monkey',scientific:'Rhinopithecus roxellana',emoji:'🐒',category:'mammals',status:'Endangered',wiki:'Golden_snub-nosed_monkey',lat:32.00,lon:107.50,habitat:'Qinling Mountains, China',
+desc:'Living in Chinese mountain forests at altitudes up to 4,000 m, golden snub-nosed monkeys are the only primates outside of humans known to survive regular snowfall.',
+facts:['One of only two primate species that regularly inhabits snowfall environments (other: Japanese macaque)','Troops are organised into "bands" of 200+ with a complex internal social structure','Males are twice the size of females and possess brilliant golden-orange fur','Feed on lichen in winter — the only primate to regularly consume lichen as a food source','Considered a national treasure in China; protected since 1975']},
+
+{name:'Bactrian Camel',scientific:'Camelus bactrianus',emoji:'🐪',category:'mammals',status:'Critically Endangered',wiki:'Bactrian_camel',lat:44.00,lon:103.00,habitat:'Gobi Desert, Mongolia',
+desc:'The two-humped wild Bactrian camel is the most cold-adapted large mammal on Earth — surviving temperatures from −40°C in winter to +40°C in summer in the Gobi Desert.',
+facts:['Survive temperature swings of 80°C between winter and summer in the Gobi Desert','Humps store fat, not water — provide insulation and energy reserves for journeys','Can drink 120 litres of water in under 15 minutes after long dehydration','Fewer than 1,000 truly wild Bactrian camels remain — more endangered than giant pandas','Can drink saline water that would kill most mammals']},
+
+{name:'Malayan Tapir',scientific:'Tapirus indicus',emoji:'🐷',category:'mammals',status:'Endangered',wiki:'Malayan_tapir',lat:3.50,lon:103.00,habitat:'Taman Negara, Malaysia',
+desc:'The Malayan tapir\'s striking black-and-white pattern is not a camouflage but a disruptive pattern that breaks up body outline in moonlit jungle — and it is Asia\'s only odd-toed ungulate.',
+facts:['Asia\'s only odd-toed ungulate — most closely related to horses and rhinoceroses','Black and white pattern breaks up body outline in moonlit jungle to confuse predators','Long flexible nose functions as a snorkel when crossing rivers — and as a tactile organ','Have changed little in over 35 million years — true living fossils','Population declined 30% in just 12 years due to deforestation']},
+
+{name:'Amur Leopard',scientific:'Panthera pardus orientalis',emoji:'🐆',category:'mammals',status:'Critically Endangered',wiki:'Amur_leopard',lat:43.50,lon:135.00,habitat:'Land of the Leopard NP, Russian Far East',
+desc:'The world\'s rarest big cat — once reduced to as few as 30 individuals, the Amur leopard has responded remarkably to protection, now numbering over 100 in the wild.',
+facts:['World\'s rarest big cat — reduced to perhaps 30 in the wild by the 1990s; now over 100','Adapted to extreme cold — thicker, paler coat in winter insulates against −30°C winters','Long, widely-spaced spots distinguish it from other leopard subspecies','Haul prey (deer as large as 60 kg) up into trees to keep them from bears','Range on Russian-Chinese border means it straddles the territory of two countries\' conservation programmes']},
+
+{name:'Siberian Tiger',scientific:'Panthera tigris altaica',emoji:'🐅',category:'mammals',status:'Endangered',wiki:'Siberian_tiger',lat:45.00,lon:133.50,habitat:'Sikhote-Alin Biosphere Reserve, Russia',
+desc:'The largest cat on Earth — a male Siberian tiger can weigh 300 kg — adapted to survive the brutal winters of the Russian Far East with a thick fur coat and larger body mass than any other tiger subspecies.',
+facts:['Largest cat on Earth — males recorded at 300 kg and 3.7 m from nose to tail tip','Body fat and thick fur protect against winters reaching −40°C','Territory can span 1,000 km² — one of the largest of any predator','Reduced to just 40 animals in the 1940s; now ~500 due to Russian conservation efforts','Primary prey is Manchurian wapiti (elk) — a single kill can sustain a tiger for a week']},
+
+{name:'Saiga Antelope',scientific:'Saiga tatarica',emoji:'🦌',category:'mammals',status:'Critically Endangered',wiki:'Saiga_antelope',lat:48.50,lon:61.00,habitat:'Betpak-Dala Steppe, Kazakhstan',
+desc:'An Ice Age survivor with a bizarre proboscis-like nose that filters dust and warms air in winter — the saiga suffered one of the most catastrophic die-offs ever recorded, losing 200,000 animals in three weeks in 2015.',
+facts:['Ice Age survivor — grazed alongside mammoths and woolly rhinos on the Eurasian steppe','Extraordinary inflatable nose warms cold air and filters steppe dust in summer','Lost 200,000 animals — 60% of the entire world population — to a bacterial disease in 3 weeks in May 2015','Migratory herds travel over 1,000 km seasonally','Males grow distinctive ridged, waxy horns used in traditional Chinese medicine — driving poaching']},
+
+{name:'Wild Yak',scientific:'Bos mutus',emoji:'🐂',category:'mammals',status:'Vulnerable',wiki:'Yak',lat:31.50,lon:91.50,habitat:'Tibetan Plateau, China',
+desc:'Surviving at altitudes up to 6,100 m — higher than any other large mammal on Earth — the wild yak\'s blood contains three times more red blood cells than lowland cattle.',
+facts:['Thrives at altitudes up to 6,100 m — higher than any other large mammal','Blood has three times more oxygen-carrying red blood cells than lowland cattle','Long outer hair can reach the ground; dense inner coat acts as insulating felt','Bulls can weigh over 1,000 kg — among the heaviest bovids on Earth','Domestic yaks can interbreed with wild yaks; domestic population exceeds 14 million']},
+
+{name:'Irrawaddy Dolphin',scientific:'Orcaella brevirostris',emoji:'🐬',category:'mammals',status:'Endangered',wiki:'Irrawaddy_dolphin',lat:16.50,lon:96.50,habitat:'Irrawaddy River, Myanmar',
+desc:'A blunt-headed river dolphin sacred to riverside communities that cooperates with fishermen in Cambodia and Myanmar — driving fish toward nets in exchange for easy pickings.',
+facts:['Co-operatively hunts with fishermen — drives fish toward nets on request in Mekong river communities','Sacred to Khmer people; considered a reincarnated human — never harmed by traditional communities','Can spit water at prey above the surface to stun or herd fish','Adapted to both marine and freshwater environments — found in estuaries and rivers up to 1,400 km from the sea','Population of the Mekong sub-population: fewer than 100 individuals']},
+
+// REPTILES
+{name:'Komodo Dragon',scientific:'Varanus komodoensis',emoji:'🦎',category:'reptiles',status:'Endangered',wiki:'Komodo_dragon',lat:-8.55,lon:119.48,habitat:'Komodo Island, Indonesia',
+desc:'The world\'s largest lizard hunts prey as large as water buffalo using venom that prevents clotting — found on only five Indonesian islands totalling 1,733 km².',
+facts:['World\'s largest lizard — up to 3 m and 70 kg','Forked tongue detects carrion from 9 km away on air currents','Females can reproduce without males via parthenogenesis — producing viable eggs unfertilised','Can eat 80% of body weight in a single feeding — jaw bones actually separate to accommodate prey','Venom glands prevent blood clotting and cause rapid blood pressure drop in bitten prey']},
+
+{name:'King Cobra',scientific:'Ophiophagus hannah',emoji:'🐍',category:'reptiles',status:'Vulnerable',wiki:'King_cobra',lat:11.00,lon:76.00,habitat:'Western Ghats, India',
+desc:'The world\'s longest venomous snake can raise a third of its body while standing taller than a human — and its Latin name "Ophiophagus" means snake-eater.',
+facts:['World\'s longest venomous snake — averages 3.5–4 m; record 5.85 m','One bite delivers enough venom to kill an adult Asian elephant or 20 humans','Eats almost exclusively other snakes, including pythons','Only snake species in the world that builds a nest for its eggs','Can raise a third of its body vertically — can "stand" taller than most humans']},
+
+{name:'Reticulated Python',scientific:'Malayopython reticulatus',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'Reticulated_python',lat:3.00,lon:101.00,habitat:'Taman Negara, Malaysia',
+desc:'The world\'s longest snake — documented individuals exceed 7 m — is a strong swimmer found throughout the islands and rainforests of Southeast Asia, occasionally entering human settlements.',
+facts:['World\'s longest snake — a verified wild specimen measured 7.67 m','Documented prey items include deer, pigs, sun bears, and dogs','Strong swimmer — colonised islands across the Indonesian archipelago','Heat-sensitive pit organs detect warm-blooded prey in total darkness','A captive specimen named Medusa held the record as longest living snake at 7.67 m']},
+
+{name:'Gharial',scientific:'Gavialis gangeticus',emoji:'🐊',category:'reptiles',status:'Critically Endangered',wiki:'Gharial',lat:27.50,lon:83.00,habitat:'Chitwan National Park, Nepal',
+desc:'The gharial\'s needle-thin, fish-catching snout makes it one of the world\'s most specialist reptiles — and one of its most endangered, with fewer than 650 surviving in Indian and Nepali rivers.',
+facts:['Long narrow snout is a specialist adaptation for catching fast-swimming fish underwater','Has 110 razor-sharp teeth — more than any other crocodilian','Males grow a bulbous nasal growth called a "ghara" (earthen pot) used to amplify hissing and bubble calls','Fewer than 650 remain in the wild — Critically Endangered since 2007','Can grow to 6 m but spends its entire life in rivers — barely able to walk on land']},
+
+{name:'Indian Star Tortoise',scientific:'Geochelone elegans',emoji:'🐢',category:'reptiles',status:'Vulnerable',wiki:'Indian_star_tortoise',lat:12.00,lon:78.00,habitat:'Deccan Plateau, India',
+desc:'One of the world\'s most beautifully patterned tortoises, with elaborate yellow star-burst markings on each scute — and one of the most trafficked reptiles in global wildlife trade.',
+facts:['Star-burst patterns on each scute are unique to the individual — like a fingerprint','One of the most trafficked reptiles in the world — thousands seized annually','Cannot right themselves once flipped; domed shell evolved partly to aid self-righting','Estivate during the monsoon — bury themselves and wait out heavy rain and flooding','Wild populations have declined 30–50% in a decade due to collection for the pet trade']},
+
+{name:'Mugger Crocodile',scientific:'Crocodylus palustris',emoji:'🐊',category:'reptiles',status:'Vulnerable',wiki:'Mugger_crocodile',lat:22.50,lon:72.50,habitat:'Nal Sarovar, Gujarat, India',
+desc:'The most widespread crocodile in the Indian subcontinent inhabits freshwater lakes, rivers, and marshes, and has been observed using sticks as "lures" to attract nest-building birds — one of the only known tool uses in reptiles.',
+facts:['Observed balancing sticks on their snouts to attract nest-building birds during nesting season — apparent tool use','Can survive months on land during drought by burying itself in cool mud','Sacred in some Hindu communities — fed and protected at certain temples','Most widespread crocodile in South Asia — from Iran to Myanmar','Males establish territories covering entire sections of rivers or lakes']},
+
+{name:'Water Monitor',scientific:'Varanus salvator',emoji:'🦎',category:'reptiles',status:'Least Concern',wiki:'Water_monitor',lat:3.00,lon:101.50,habitat:'Peninsular Malaysia',
+desc:'The world\'s second-largest lizard after the Komodo dragon is a highly adaptable predator found from Sri Lanka to the Philippines — and has thrived in Asian cities including Bangkok and Singapore.',
+facts:['World\'s second-largest lizard — up to 3.21 m and 65 kg; most individuals are 1.5 m','Forked tongue is used in the same chemosensory way as a snake\'s — sampling air in stereo','Excellent swimmer — can remain submerged for up to 30 minutes','Thrives in city parks across Southeast Asia — Bangkok has large urban populations','Used for leather and meat — among the most commercially harvested lizards globally']},
+
+{name:'Tokay Gecko',scientific:'Gekko gecko',emoji:'🦎',category:'reptiles',status:'Least Concern',wiki:'Tokay_gecko',lat:14.00,lon:101.00,habitat:'Thailand',
+desc:'Named for its two-note "to-kay" call, the tokay is the world\'s second-largest gecko and one of the few reptiles known to engage in parental care — guarding eggs until hatching.',
+facts:['Call — a loud "TO-KAY" repeated 3–6 times — gives the species its name','World\'s second-largest gecko — up to 35 cm','Toe pads are covered in millions of microscopic hairs (setae) that grip through van der Waals forces','Guard their egg clutches until hatching — unusual parental care for a lizard','Sold in enormous quantities for traditional medicine — millions harvested annually in Southeast Asia']},
+
+{name:'Flying Dragon',scientific:'Draco volans',emoji:'🦎',category:'reptiles',status:'Least Concern',wiki:'Draco_volans',lat:3.00,lon:102.00,habitat:'Rainforests of Malaysia',
+desc:'The flying dragon extends elongated false ribs into a pair of colourful "wings," gliding up to 9 m between trees and barely touching the ground for its entire life.',
+facts:['Extended false ribs support thin flaps of skin that act as gliding wings','Glides up to 9 m between trees without losing significant altitude','Males use wing-like dewlaps for territorial displays and courtship','Spend almost their entire lives in trees — females descend only to lay eggs in leaf litter','Wings fold flat against body when not gliding, becoming nearly invisible']},
+
+{name:'Chinese Softshell Turtle',scientific:'Pelodiscus sinensis',emoji:'🐢',category:'reptiles',status:'Vulnerable',wiki:'Chinese_softshell_turtle',lat:30.00,lon:120.00,habitat:'Yangtze Delta, China',
+desc:'The Chinese softshell turtle has a leathery shell and a long snout that acts as a natural snorkel — and excretes urea through its mouth while submerged, eliminating the need to surface to urinate.',
+facts:['Leathery flexible shell unlike the rigid shell of most turtles — allows squeezing through tight spaces','Long snorkel-like snout allows breathing while barely surfacing','Urinates through its mouth while submerged — no need to surface; excretes urea via oral mucosa','One of the most consumed reptiles on Earth — a staple of Chinese cuisine for millennia','Farmed in huge quantities — aquaculture production exceeds wild capture many times over']},
+
+// BIRDS
+{name:'Indian Peafowl',scientific:'Pavo cristatus',emoji:'🦚',category:'birds',status:'Least Concern',wiki:'Indian_peafowl',lat:21.50,lon:82.00,habitat:'Kanha Tiger Reserve, India',
+desc:'The male peacock\'s extraordinary tail — which can exceed 1.8 m and represents 60% of total body length — is the canonical example of sexual selection that inspired Charles Darwin\'s theory.',
+facts:['The tail train can exceed 1.8 m and represents 60% of total body length','Eyes on each feather create an illusion of a giant staring face to deter predators','Can fly well despite the enormous tail — roost in trees at 10+ m to avoid ground predators','National bird of India — revered in Hindu, Buddhist, and Greek mythology','The "eyes" in the feathers correlate with male health; females select based on eyespot number and symmetry']},
+
+{name:'Japanese Crane',scientific:'Grus japonensis',emoji:'🦢',category:'birds',status:'Vulnerable',wiki:'Red-crowned_crane',lat:43.00,lon:144.00,habitat:'Kushiro Marshland, Hokkaido',
+desc:'The rarest crane on Earth — reduced to just 33 wild individuals in 1950 — the red-crowned crane is a symbol of longevity and good fortune across East Asian culture.',
+facts:['Rarest crane on Earth — reduced to 33 in Hokkaido in 1950; now over 1,800 in Japan','Symbol of longevity, happiness, and good fortune across Japan, China, and Korea','One of the tallest flying birds — stands 1.5 m tall with a 2.5 m wingspan','Elaborate synchronized dancing displays — used both for pair bonding and territorial defence','Pair bonds are lifelong — pairs dance together every breeding season for decades']},
+
+{name:'Great Hornbill',scientific:'Buceros bicornis',emoji:'🐦',category:'birds',status:'Vulnerable',wiki:'Great_hornbill',lat:11.00,lon:77.00,habitat:'Nilgiri Hills, India',
+desc:'The great hornbill\'s spectacular yellow-and-black casque amplifies calls across forest canopies, and the male seals his partner inside a tree hollow to incubate their eggs — passing her food through a slit for months.',
+facts:['Male seals female inside a hollow tree for the entire nesting period — 3–4 months','Passes food to the female and later to chicks through a narrow slit in the mud seal','Casque (hollow structure atop bill) amplifies calls and is used as a battering ram in combat','National bird of India\'s Arunachal Pradesh state','Feathers used ceremonially by tribes in northeast India and Borneo — the bird holds cultural significance across its range']},
+
+{name:'Bali Myna',scientific:'Leucopsar rothschildi',emoji:'🐦',category:'birds',status:'Critically Endangered',wiki:'Bali_myna',lat:-8.10,lon:114.50,habitat:'Bali Barat National Park, Bali',
+desc:'Critically endangered and found only in Bali\'s dry deciduous forests — the Bali Myna\'s snow-white plumage and electric-blue eye mask made it so prized in the cage-bird trade that the wild population collapsed to just 6 birds.',
+facts:['Wild population collapsed to 6 individuals in 2001 due to cage-bird trapping','Snow-white plumage with bright blue eye mask made it one of the most sought-after cage birds','Endemic to Bali — found nowhere else on Earth','Captive breeding has produced thousands of birds; reintroduction ongoing','Now the official symbol of Bali — ironic given the role of Balinese bird traders in its near-extinction']},
+
+{name:'Philippine Eagle',scientific:'Pithecophaga jefferyi',emoji:'🦅',category:'birds',status:'Critically Endangered',wiki:'Philippine_eagle',lat:7.00,lon:125.00,habitat:'Mount Apo, Mindanao',
+desc:'The Philippine eagle — largest eagle in the world by wingspan — is the national bird of the Philippines and one of the rarest birds on Earth, with fewer than 800 remaining in old-growth Mindanao forests.',
+facts:['Largest eagle in the world by wingspan — up to 2.2 m wing tip to wing tip','Primary prey is flying lemurs — snatched from the forest canopy in spectacular dives','Fewer than 800 remaining in the wild — all in the Philippines','A pair raises only one chick every two years; each chick takes 5 years to mature','Killing a Philippine Eagle carries a minimum 12-year prison sentence in the Philippines']},
+
+{name:'Himalayan Monal',scientific:'Lophophorus impejanus',emoji:'🦚',category:'birds',status:'Least Concern',wiki:'Himalayan_monal',lat:28.00,lon:84.00,habitat:'Annapurna Conservation Area, Nepal',
+desc:'National bird of Nepal and state bird of Uttarakhand, the Himalayan monal male is covered in iridescent plumage that shifts from purple to green to copper depending on the angle of light.',
+facts:['Male plumage contains nine distinct metallic colours — iridescent across the entire spectrum','National bird of Nepal; state bird of India\'s Uttarakhand state','Digs through snow with its strong curved bill to find roots, tubers, and insects','Lives from 2,100 m to 4,500 m altitude — one of Asia\'s highest-altitude birds','Female is a cryptic brown — a stark contrast to the male\'s brilliant display']},
+
+{name:'Red Junglefowl',scientific:'Gallus gallus',emoji:'🐓',category:'birds',status:'Least Concern',wiki:'Red_junglefowl',lat:15.00,lon:100.00,habitat:'Doi Inthanon, Thailand',
+desc:'The wild ancestor of all domestic chickens on Earth — diverged from domestication only 7,000–10,000 years ago, producing the most numerous bird species in the world with 33 billion alive today.',
+facts:['Wild ancestor of all 33 billion domestic chickens alive on Earth today','Domestication began in Southeast Asia 7,000–10,000 years ago','Males perform elaborate "tidbitting" dance displays to show females food before offering it','Wild males can fly — an ability largely bred out of domestic breeds','Introduced by humans to every inhabited continent — changed global food systems forever']},
+
+{name:'Mandarin Duck',scientific:'Aix galericulata',emoji:'🦆',category:'birds',status:'Least Concern',wiki:'Mandarin_duck',lat:35.00,lon:135.00,habitat:'Kyoto, Japan',
+desc:'Often cited as the world\'s most beautiful duck — the male\'s extraordinary plumage includes orange "sail" feathers, a red bill, and a purple breast — and has become an invasive but celebrated sight in UK rivers.',
+facts:['Considered by many ornithologists to be the world\'s most beautiful duck','Sail-like orange tertial feathers are unique to the male — used exclusively in courtship display','Nest in tree hollows up to 10 m off the ground — ducklings leap out on their first day of life','Escaped captive populations in the UK number in the thousands, now thriving on English rivers','Symbol of love and fidelity in East Asian culture — given as wedding gifts']},
+
+{name:'Siberian Crane',scientific:'Leucogeranus leucogeranus',emoji:'🦢',category:'birds',status:'Critically Endangered',wiki:'Siberian_crane',lat:70.00,lon:60.00,habitat:'Ob River Delta, Russia',
+desc:'One of the world\'s rarest birds makes one of the longest migrations on Earth — 5,000 km from Siberian Arctic breeding grounds to wintering sites in India and China.',
+facts:['Migrates up to 5,000 km between Siberian breeding grounds and Indian/Chinese wintering sites','Fewer than 3,800 remain in the wild — two separate migration routes with distinct populations','Wintering birds at Keoladeo, India were the last of the central Asian population — now extinct at that site','Entirely white with red mask and bill — one of the most distinctive of all cranes','Hunting along migration routes and wetland drainage have devastated populations']},
+
+{name:'Sarus Crane',scientific:'Antigone antigana',emoji:'🦢',category:'birds',status:'Vulnerable',wiki:'Sarus_crane',lat:27.00,lon:78.00,habitat:'Uttar Pradesh, India',
+desc:'The world\'s tallest flying bird stands 1.8 m — and is so revered in Hindu culture that harming a sarus crane in Indian villages traditionally brought a village curse.',
+facts:['World\'s tallest flying bird — stands up to 1.8 m tall with a 2.4 m wingspan','Pairs mate for life and are rarely seen more than a wingspan apart','If a partner dies, the surviving bird will often refuse to eat and pine visibly','Considered sacred in northern India — villagers actively protect nesting pairs','A key indicator species for wetland health across South and Southeast Asia']},
+
+{name:'White-bellied Sea Eagle',scientific:'Haliaeetus leucogaster',emoji:'🦅',category:'birds',status:'Least Concern',wiki:'White-bellied_sea_eagle',lat:13.00,lon:80.00,habitat:'South India Coast',
+desc:'The second-largest raptor in Australia — but ranging from India to the Pacific — this eagle hunts fish with dramatic feet-first dives and is known to harass other birds until they drop their prey.',
+facts:['Range spans from India through Southeast Asia to Australia — one of the widest of any eagle','Hunts by making shallow-angle feet-first splashes at the water surface','Harasses ospreys and other fishing birds to steal their catches (kleptoparasitism)','Builds enormous nests (up to 2 m wide) used and added to over many decades','National bird of Sri Lanka']},
+
+{name:'Great White Pelican',scientific:'Pelecanus onocrotalus',emoji:'🐦',category:'birds',status:'Least Concern',wiki:'Great_white_pelican',lat:52.00,lon:68.00,habitat:'Kurgaldzhin, Kazakhstan',
+desc:'The great white pelican feeds cooperatively — groups form a horseshoe on the water surface, beating their wings to drive fish into a tight shoal before scooping en masse.',
+facts:['Feeds cooperatively in coordinated horseshoe formations, beating fish into compressed shoals','Can hold 13 litres of water in its pouch — the largest of any pelican','Pouch is used only for catching, never for transporting food; fish are swallowed before flight','One of the heaviest flying birds — up to 15 kg','Breeds in colonies of thousands at inland lakes; migrates to coastal wintering grounds']},
+
+// FISH
+{name:'Mekong Giant Catfish',scientific:'Pangasianodon gigas',emoji:'🐟',category:'fish',status:'Critically Endangered',wiki:'Mekong_giant_catfish',lat:20.00,lon:100.50,habitat:'Upper Mekong, Laos',
+desc:'The world\'s largest freshwater fish by weight — once caught weighing 293 kg — the Mekong giant catfish is entirely vegetarian and has declined over 80% in 20 years due to dam construction.',
+facts:['World\'s largest freshwater fish by weight — heaviest recorded individual weighed 293 kg at 2.7 m','Entirely herbivorous as adults — eats only algae and aquatic plants','The upper Mekong population has declined over 80% in just 20 years','Dams on the Mekong prevent migration to breeding grounds, critically impacting reproduction','Considered sacred by Mekong river communities — ceremonial catches were once returned alive to the river']},
+
+{name:'Giant Freshwater Stingray',scientific:'Urogymnus polylepis',emoji:'🐟',category:'fish',status:'Endangered',wiki:'Giant_freshwater_stingray',lat:13.50,lon:100.50,habitat:'Mekong River, Thailand',
+desc:'The world\'s largest freshwater fish overall — a disc over 2 m wide and weighing up to 600 kg has been verified — yet the giant freshwater stingray remained almost unknown to science until 1990.',
+facts:['May be the world\'s largest freshwater fish — disk widths over 2 m; individual verified at 301 kg','Was largely unknown to science until 1990 — only described formally in 2022 as a distinct species','Venomous serrated tail spine can exceed 30 cm in length','Buried in sandy river bottom by day — detected only by its breathing disturbances in the sand','A 300 kg individual was caught and released with GPS tracking in 2022 — the world\'s heaviest freshwater fish ever recorded']},
+
+{name:'Asian Arowana',scientific:'Scleropages formosus',emoji:'🐟',category:'fish',status:'Endangered',wiki:'Asian_arowana',lat:0.50,lon:109.50,habitat:'Kapuas River, Borneo',
+desc:'Considered by East Asian cultures to bring wealth and good fortune — the golden Asian arowana has become the world\'s most expensive aquarium fish, with single specimens selling for over $300,000.',
+facts:['Single specimens have sold for over $300,000 USD — the world\'s most expensive aquarium fish','Listed on CITES Appendix I — international trade in wild-caught specimens is illegal','Males hold fertilised eggs in their mouths until young are ready to swim independently','Believed to bring wealth and good luck — the dragon fish is a feng shui symbol','Have changed little since the Jurassic period — one of Earth\'s oldest surviving fish lineages']},
+
+{name:'Giant Snakehead',scientific:'Channa micropeltes',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Giant_snakehead',lat:11.50,lon:104.50,habitat:'Mekong Delta, Cambodia',
+desc:'The giant snakehead can breathe atmospheric air directly and survive out of water for days — making it one of the most invasive freshwater fish globally when escaped or released.',
+facts:['Breathes atmospheric air directly through a labyrinth organ — can survive out of water for days','Parents guard eggs and fry aggressively — will attack humans who approach their nest','One of the most damaging invasive freshwater fish species globally','Adults up to 1.2 m — ambush predators eating fish, frogs, small mammals, and birds','Can travel short distances across land to find new water bodies when their habitat dries']},
+
+{name:'Japanese Pufferfish',scientific:'Takifugu rubripes',emoji:'🐡',category:'fish',status:'Least Concern',wiki:'Tiger_pufferfish',lat:34.00,lon:136.00,habitat:'Inland Sea, Japan',
+desc:'The fugu — one of Japan\'s most prized dishes — contains tetrodotoxin in its organs, 1,200 times more lethal than cyanide and with no antidote; chefs require years of training and licensing to serve it.',
+facts:['Organs contain tetrodotoxin — 1,200× more potent than cyanide, with no known antidote','Japanese chefs require 2–3 years of training and government licensing to prepare fugu legally','Males create elaborate geometric crop-circle patterns on the seafloor to attract females','Can inflate their body to 2–3× normal size by swallowing water (or air) as a defence','Despite the risk, fugu kills only 30–50 people per year in Japan — usually from unlicensed preparation']},
+
+{name:'Mudskipper',scientific:'Boleophthalmus boddarti',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Mudskipper',lat:22.50,lon:88.50,habitat:'Sundarbans, India',
+desc:'The most terrestrial of all fish — mudskippers spend more time on land than in water, breathing through their moist skin and performing elaborate push-up courtship displays on mudflats.',
+facts:['Breathe through their skin — must keep skin moist; spend most of their time on land','Use pectoral fins as crutches to move across mudflats — and can climb mangrove roots','Males dig burrows in the mud and aerate them by swallowing air to supply oxygen to eggs','Perform elaborate push-up displays to defend territories and attract females','Eyes on stalks can move independently and retract into the skull for protection']},
+
+// INSECTS
+{name:'Asian Giant Hornet',scientific:'Vespa mandarinia',emoji:'🐝',category:'insects',status:'Least Concern',wiki:'Asian_giant_hornet',lat:36.50,lon:138.00,habitat:'Honshu, Japan',
+desc:'The world\'s largest hornet can fly at 40 km/h for 100 km without stopping — a small group of 30 can massacre an entire honeybee colony of 30,000 in under 2 hours.',
+facts:['World\'s largest hornet — queens can reach 5 cm in length','A group of 30 hornets can massacre 30,000 honeybees in under 2 hours','Venom contains a pheromone that marks targets for further attacks by the swarm','Hornet attacks kill around 50 people per year in Japan — mostly severe allergic reactions','Nicknamed "murder hornet" in North America after sightings in 2019 caused widespread alarm']},
+
+{name:'Atlas Moth',scientific:'Attacus atlas',emoji:'🦋',category:'insects',status:'Least Concern',wiki:'Atlas_moth',lat:23.00,lon:113.00,habitat:'South China/Southeast Asia',
+desc:'One of the largest moths in the world — wingspan up to 30 cm — the atlas moth has no mouth as an adult and must survive entirely on fat reserves from its caterpillar stage, living only 1–2 weeks.',
+facts:['One of the world\'s largest moths — wingspan up to 30 cm, wing area exceeds 400 cm²','Adults have no mouth and cannot eat — survive 1–2 weeks entirely on fat reserves from larval stage','Wing tips have markings resembling cobra heads — a sophisticated predator deterrent','Cocoon silk is used in Taiwan to make small coin purses','Named after Atlas from Greek mythology — carrying the "weight of the world" on its wings']},
+
+{name:'Giant Water Bug',scientific:'Lethocerus indicus',emoji:'🪲',category:'insects',status:'Least Concern',wiki:'Giant_water_bug',lat:15.00,lon:100.00,habitat:'Central Thailand Wetlands',
+desc:'The largest insect in Thailand and one of the largest in Asia — the giant water bug can overpower frogs, fish, and small snakes with forelegs that inject liquefying enzymes.',
+facts:['One of Asia\'s largest insects — up to 12 cm in length','Inject prey with digestive saliva that liquefies internal organs — sucked out through the beak','Prey includes tadpoles, small fish, frogs, and occasionally small snakes','Males carry fertilised eggs on their backs — a rare and remarkable form of paternal care','A popular deep-fried street snack in Thailand and Laos']},
+
+{name:'Orchid Mantis',scientific:'Hymenopus coronatus',emoji:'🌸',category:'insects',status:'Least Concern',wiki:'Orchid_mantis',lat:3.50,lon:103.50,habitat:'Rainforests of Malaysia',
+desc:'The orchid mantis mimics a flower so perfectly that pollinating insects land on it voluntarily — making it one of the only predators that deceives prey by resembling a reward rather than a threat.',
+facts:['Mimics a flower so convincingly that insects are attracted to it as a food source','One of the only examples of an animal mimicking a flower to attract (not avoid) prey','Colour shifts from white to pink depending on the colour of surrounding flowers','Females are twice the size of males — sexual dimorphism extreme enough that the sexes were once classified as different species','Among the most sought-after invertebrate pets in the world']},
+
+{name:'Jewel Beetle',scientific:'Chrysochroa rajah',emoji:'🪲',category:'insects',status:'Least Concern',wiki:'Chrysochroa_rajah',lat:5.00,lon:118.00,habitat:'Borneo',
+desc:'The most iridescent insect on Earth — jewel beetles produce structural colour through microscopic layers in their exoskeleton rather than pigment, making their wings shimmer like living metal.',
+facts:['Colour is structural — produced by microscopic layers that diffract light, like a soap bubble or CD','So brilliantly iridescent that wings have been used in Asian jewellery for centuries','Dead specimens retain their colour indefinitely — museum specimens from 200 years ago still shimmer','Larvae bore into living trees for up to 3 years before emerging as adults','Adults live only a few weeks — spending their brief adult life entirely on reproduction']},
+
+{name:'Giant Walking Stick',scientific:'Phobaeticus chani',emoji:'🪲',category:'insects',status:'Least Concern',wiki:'Phobaeticus_chani',lat:5.00,lon:118.00,habitat:'Mount Kinabalu, Borneo',
+desc:'The world\'s longest insect — the body alone reaches 35.7 cm; with legs fully extended a specimen can span over 56 cm — discovered in the montane forests of Sabah in Borneo.',
+facts:['World\'s longest insect — body length 35.7 cm; total span with legs extended exceeds 56 cm','Perfectly mimics a forest twig — colouring, shape, and even the sway of the body match living vegetation','Eggs have a fatty capsule (capitulum) that ants carry into their nests, dispersing the species widely','Named after naturalist Chan Chew Lun in recognition of his contribution to Malaysian natural history','Live in montane cloud forest above 1,500 m in Sabah, Borneo — extremely difficult to observe']},
+
+// AMPHIBIANS
+{name:'Chinese Giant Salamander',scientific:'Andrias davidianus',emoji:'🫧',category:'amphibians',status:'Critically Endangered',wiki:'Chinese_giant_salamander',lat:30.60,lon:114.30,habitat:'Yangtze River tributaries, China',
+desc:'The world\'s largest amphibian — a living fossil unchanged for 170 million years — is now critically endangered, primarily due to collection for luxury restaurant trade in China.',
+facts:['World\'s largest amphibian — up to 1.8 m in length and 50 kg in weight','Virtually unchanged for 170 million years — a true living fossil that shared the world with dinosaurs','Nearly blind; detects prey by sensing water pressure changes through lateral line organs in the skin','Can live for over 60 years in captivity','Wild populations have collapsed by 80% in 15 years — almost entirely due to collection for food']},
+
+{name:'Japanese Giant Salamander',scientific:'Andrias japonicus',emoji:'🫧',category:'amphibians',status:'Near Threatened',wiki:'Japanese_giant_salamander',lat:35.00,lon:135.50,habitat:'Hii River, Shimane, Japan',
+desc:'Japan\'s largest amphibian and the world\'s second-largest, sacred in Japanese culture and considered a national monument — males guard nests called "dens" of thousands of eggs for months.',
+facts:['World\'s second-largest amphibian — up to 1.5 m and 35 kg','Males guard a "den" excavated under a rock from which they drive all rival males except one dominant breeder','Designated a Special Natural Monument in Japan — legally protected since 1952','Absorbs dissolved oxygen entirely through wrinkled skin — has no functional gills as an adult','Sometimes visible in Kyoto\'s rivers — the species has cultural significance in Japanese mythology']},
+
+{name:'Indian Purple Frog',scientific:'Nasikabatrachus sahyadrensis',emoji:'🐸',category:'amphibians',status:'Endangered',wiki:'Purple_frog',lat:10.50,lon:76.50,habitat:'Kerala, Western Ghats',
+desc:'One of the most unusual amphibians on Earth — the Indian purple frog spends 11 months underground, emerging for only 2 weeks per year during the monsoon to breed, before vanishing again.',
+facts:['Spends 11 out of 12 months underground, emerging only for 2 weeks during peak monsoon rains','Only described by science in 2003 — one of the most significant vertebrate discoveries of the 21st century','Evolved from Gondwanan ancestors — lineage diverged from other frogs 130 million years ago when India separated from Madagascar','Bloated, rounded body with a pointed snout is unique among South Asian frogs','Feeds on termites deep underground using its sticky tongue; never eats during its brief surface stay']},
+
+{name:'Bornean Horned Frog',scientific:'Megophrys nasuta',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'Malayan_horned_frog',lat:4.50,lon:117.00,habitat:'Danum Valley, Borneo',
+desc:'The Bornean horned frog\'s camouflage is among the most perfect of any vertebrate — it mimics a dead leaf so precisely that even trained herpetologists nearly step on them.',
+facts:['Mimics dead leaves so precisely that herpetologists have accidentally stepped on them in the field','Pointed horn-like projections above each eye and on the snout break up the body outline on the forest floor','Camouflage maintained by remaining motionless for hours or days among leaf litter','Males call from stream banks at night — the loud "pak" call echoes off water to attract females','Tadpoles feed at the water surface — upturned mouth is a distinctive adaptation for surface feeding']},
+
+{name:'Malabar Gliding Frog',scientific:'Rhacophorus malabaricus',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'Malabar_gliding_frog',lat:11.50,lon:75.50,habitat:'Malabar Coast, Kerala, India',
+desc:'The Malabar gliding frog uses enormous, fully-webbed feet as parachutes, gliding up to 9 m between trees and controlling descent using its webbing — one of only a few amphibians capable of true aerial gliding.',
+facts:['Glides up to 9 m between trees using enormous fully-webbed feet as parachutes','Controls descent by adjusting the angle of webbed feet — can steer during a glide','Builds foam nests hanging over water — tadpoles drop into the water below when they hatch','Bright red feet and hands are warning colouration visible during flight','Restricted to Western Ghats of India — a UNESCO World Heritage biodiversity hotspot']},
+
+{name:'Giant Tree Frog',scientific:'Rhacophorus reinwardtii',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'Reinwardt\'s_flying_frog',lat:5.00,lon:118.00,habitat:'Lowland Rainforest, Borneo',
+desc:'Asia\'s largest tree frog is also a gliding amphibian — the enormous green flying frog launches from high canopy branches and opens webbed feet to drift 15 m to lower perches.',
+facts:['One of Asia\'s largest tree frogs — females can exceed 10 cm body length','Glides up to 15 m by spreading fully-webbed fingers and toes','Brilliant emerald green body with blue webbing — striking contrast visible during glides','Whips vegetation with legs to create a foam nest in which eggs are deposited','Found in the lowland rainforests of Borneo, Sumatra, and the Malay Peninsula']
+}
+];
+
+const SC={'Least Concern':'LC','Near Threatened':'NT','Vulnerable':'VU','Endangered':'EN','Critically Endangered':'CR'};
+let activeCat='all',searchQ='',currentList=[],currentModal=null;
+const disc=new Set(JSON.parse(localStorage.getItem('ae_asia_disc')||'[]'));
+const wiki={};let map=null,markers=[];
+async function getWikiImg(t){if(wiki[t]!==undefined)return wiki[t];try{const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);const d=await r.json();const u=d.originalimage?.source||d.thumbnail?.source||null;wiki[t]=u;return u;}catch{wiki[t]=null;return null;}}
+function initMap(){map=L.map('world-map',{center:[25,95],zoom:3,minZoom:2,maxZoom:18});L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:18}).addTo(map);L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{attribution:'',maxZoom:18,opacity:0.55}).addTo(map);updateMarkers();map.on('zoomend moveend',updateMarkers);}
+function updateMarkers(){markers.forEach(m=>map.removeLayer(m));markers=[];if(map.getZoom()<3)return;filtered().forEach((a)=>{const el=L.divIcon({html:`<div class="animal-map-marker${disc.has(ANIMALS.indexOf(a))?' discovered':''}" title="${a.name}">${catIcon(a.category)}</div>`,className:'',iconSize:[34,34],iconAnchor:[17,17]});const m=L.marker([a.lat,a.lon],{icon:el}).addTo(map);m.on('click',()=>openModal(ANIMALS.indexOf(a)));markers.push(m);});}
+function filtered(){const q=searchQ.toLowerCase().trim();return ANIMALS.filter(a=>{const cm=activeCat==='all'||a.category===activeCat;const sm=!q||a.name.toLowerCase().includes(q)||a.scientific.toLowerCase().includes(q)||a.desc.toLowerCase().includes(q)||a.facts.some(f=>f.toLowerCase().includes(q));return cm&&sm;});}
+function renderCards(){const grid=document.getElementById('cards-grid');const empty=document.getElementById('empty-state');const list=filtered();currentList=list;document.getElementById('results-count').textContent=list.length+' animal'+(list.length===1?'':'s');document.getElementById('results-title').textContent=activeCat==='all'?'All Asian Animals':'Asian '+cap(activeCat);document.getElementById('reset-btn').style.display=activeCat==='all'?'none':'inline-block';if(!list.length){grid.innerHTML='';empty.style.display='block';return;}empty.style.display='none';grid.innerHTML=list.map((a,i)=>{const idx=ANIMALS.indexOf(a);return `<div class="card" onclick="openModal(${idx})" style="animation-delay:${i*22}ms"><div class="card-photo bg-${a.category}"><span class="card-fallback">${catIcon(a.category)}</span><img data-wiki="${a.wiki}" alt="${a.name}" loading="lazy"/></div><div class="card-overlay"><p>${a.facts[0].substring(0,88)}…</p><small>TAP TO EXPLORE <svg class="svg-ic"><use href="#ic-arrow-right"/></svg></small></div><div class="card-info">${disc.has(idx)?'<span class="card-check"><svg class="svg-ic"><use href="#ic-check"/></svg></span>':''}<div class="card-name">${a.name}</div><div class="card-row"><span class="badge b-${a.category}">${a.category}</span><span style="color:var(--sub);font:.68rem Arial,sans-serif">${catIcon(a.category)}</span></div></div></div>`;}).join('');grid.querySelectorAll('img[data-wiki]').forEach(img=>{getWikiImg(img.dataset.wiki).then(u=>{if(u){img.src=u;img.onload=()=>{img.classList.add('loaded');img.previousElementSibling.style.opacity=0};}});});}
+function openModal(idx){const a=ANIMALS[idx];const sc=SC[a.status]||'LC';const inL=currentList.indexOf(a);const pr=inL>0?ANIMALS.indexOf(currentList[inL-1]):null;const nx=inL<currentList.length-1?ANIMALS.indexOf(currentList[inL+1]):null;const sat=`https://maps.google.com/maps?q=${a.lat},${a.lon}&t=k`;const sv=`https://maps.google.com/maps?q=${a.lat},${a.lon}&layer=c&cbll=${a.lat},${a.lon}`;document.getElementById('modal-content').innerHTML=`<div class="modal-hero bg-${a.category}"><div class="fallback-hero">${catIcon(a.category)}</div><img data-wiki="${a.wiki}" alt="${a.name}"/><div class="modal-hero-grad"></div><div class="modal-hero-title"><h2>${a.name}</h2><em>${a.scientific}</em></div></div><div class="modal-body"><div class="modal-badges"><span class="badge b-${a.category}">${a.category}</span><span class="s-badge s-${sc}">${a.status}</span></div><p class="modal-desc">${a.desc}</p><div class="facts-head">Wild Facts</div><ul class="facts-list" id="facts-list">${a.facts.map(f=>`<li>${f}</li>`).join('')}</ul><div class="habitat-section"><div class="habitat-title">Habitat</div><div class="habitat-name"><svg class="svg-ic"><use href="#ic-pin"/></svg> ${a.habitat}</div><div class="habitat-btns"><a href="${sat}" target="_blank" class="habitat-btn hbtn-sat"><svg class="svg-ic"><use href="#ic-satellite"/></svg> Google Maps Satellite</a><a href="${sv}" target="_blank" class="habitat-btn hbtn-sv"><svg class="svg-ic"><use href="#ic-camera"/></svg> Google Street View</a></div></div><div class="modal-nav"><button onclick="event.stopPropagation();openModal(${pr})" ${pr===null?'disabled style="opacity:.3"':''}><svg class="svg-ic"><use href="#ic-arrow-left"/></svg> Prev</button><button onclick="event.stopPropagation();openModal(${nx})" ${nx===null?'disabled style="opacity:.3"':''}>Next <svg class="svg-ic"><use href="#ic-arrow-right"/></svg></button></div></div>`;document.getElementById('modal-overlay').classList.add('open');document.body.style.overflow='hidden';currentModal=idx;disc.add(idx);localStorage.setItem('ae_asia_disc',JSON.stringify([...disc]));updateDiscUI();const img=document.querySelector('#modal-content .modal-hero img');getWikiImg(a.wiki).then(u=>{if(u&&img){img.src=u;img.onload=()=>img.classList.add('loaded');}});setTimeout(()=>{document.querySelectorAll('#facts-list li').forEach((li,i)=>{setTimeout(()=>li.classList.add('visible'),i*70);});},180);}
+function updateDiscUI(){const n=disc.size,t=ANIMALS.length;document.getElementById('disc-count').textContent=`${n}/${t}`;document.getElementById('disc-text').textContent=n;document.getElementById('disc-total').textContent=t;document.getElementById('disc-bar').style.width=`${(n/t)*100}%`;}
+function toggleDisc(){const p=document.getElementById('disc-panel');p.style.display=p.style.display==='block'?'none':'block';}
+function surpriseMe(){const l=filtered();if(!l.length)return;openModal(ANIMALS.indexOf(l[Math.floor(Math.random()*l.length)]));}
+function resetCat(){activeCat='all';document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active',p.dataset.cat==='all'));renderCards();updateMarkers();}
+function cap(s){return s[0].toUpperCase()+s.slice(1)}
+function initTicker(){const facts=ANIMALS.flatMap(a=>a.facts.map(f=>a.name+' — '+f)).sort(()=>Math.random()-.5);const track=document.getElementById('ticker-track');const el=document.getElementById('ticker');let idx=0,anim=null,paused=false;function playNext(){el.style.transition='opacity 0.4s';el.style.opacity='0';setTimeout(()=>{el.textContent=facts[idx++%facts.length];el.style.transition='none';const cw=track.clientWidth;el.style.transform=`translateX(${cw}px)`;void el.offsetWidth;el.style.transition='opacity 0.4s';el.style.opacity='1';const tw=el.scrollWidth;const dur=(cw+tw)/50*1000;if(anim)anim.cancel();anim=el.animate([{transform:`translateX(${cw}px)`},{transform:`translateX(-${tw}px)`}],{duration:dur,easing:'linear',fill:'forwards'});if(paused)anim.pause();anim.onfinish=()=>setTimeout(playNext,400);},400);}track.addEventListener('mouseenter',()=>{paused=true;if(anim)anim.pause();});track.addEventListener('mouseleave',()=>{paused=false;if(anim)anim.play();});playNext();}
+document.addEventListener('DOMContentLoaded',()=>{initMap();renderCards();updateDiscUI();initTicker();});
+document.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',function(){document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));this.classList.add('active');activeCat=this.dataset.cat;renderCards();updateMarkers();}));
+document.getElementById('search-input').addEventListener('input',function(){searchQ=this.value;renderCards();updateMarkers();});
+document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target.id==='modal-overlay')closeModal();});
+document.getElementById('modal-close').addEventListener('click',closeModal);
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');document.body.style.overflow='';currentModal=null;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.key==='ArrowRight'&&currentModal!==null){const i=currentList.indexOf(ANIMALS[currentModal]);if(i<currentList.length-1)openModal(ANIMALS.indexOf(currentList[i+1]));}if(e.key==='ArrowLeft'&&currentModal!==null){const i=currentList.indexOf(ANIMALS[currentModal]);if(i>0)openModal(ANIMALS.indexOf(currentList[i-1]));}});
+</script>
+<script src="paw-cursor.js" defer></script>
+</body>
+</html>

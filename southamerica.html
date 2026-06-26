@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Animal Explorer — South America</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#090f09;--card:#121e12;--border:#1e341e;--text:#ddeacc;--sub:#6a8a5a;--accent:#f0d07a;--mammal:#2e6e20;--reptile:#7a3a10;--bird:#164880;--fish:#086060;--insect:#706000;--amphibian:#4a1878}
+body{background:var(--bg);color:var(--text);font-family:Georgia,serif;min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;padding:.9rem 1.4rem;background:#0d160d;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:500}
+.back-btn{padding:.32rem .85rem;background:transparent;border:1px solid var(--border);color:var(--sub);font:.78rem Arial,sans-serif;border-radius:20px;cursor:pointer;transition:all .15s}
+.back-btn:hover{border-color:var(--accent);color:var(--accent)}
+.logo{font-size:1.2rem;color:var(--accent)}
+.disc-badge{padding:.3rem .75rem;border:1px solid rgba(240,208,122,.25);border-radius:20px;font:.78rem Arial,sans-serif;color:var(--accent);cursor:pointer;background:rgba(240,208,122,.06)}
+.disc-panel{display:none;padding:.6rem 1.4rem;background:#0a130a;border-bottom:1px solid var(--border)}
+.disc-bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:.3rem}
+.disc-bar{height:100%;background:linear-gradient(90deg,#3a7820,var(--accent));border-radius:3px;transition:width .5s}
+.disc-panel p{font:.73rem Arial,sans-serif;color:var(--sub)}.disc-panel p span{color:var(--accent)}
+.ticker-wrap{display:flex;align-items:center;gap:.5rem;font:italic .76rem/1.3 Arial,sans-serif;color:var(--sub);width:300px;flex-shrink:0}
+.ticker-label{color:var(--accent);font-style:normal;font-weight:bold;white-space:nowrap}
+#ticker-track{overflow:hidden;flex:1;min-width:0;position:relative;height:1.3em;cursor:default}
+#ticker{position:absolute;white-space:nowrap;will-change:transform;opacity:0}
+.controls{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.65rem 1.4rem;background:#0d160d;border-bottom:1px solid var(--border)}
+.search-wrap{position:relative;flex:1;min-width:150px;max-width:240px}
+.search-wrap svg{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--sub);fill:none;pointer-events:none}
+.search-input{width:100%;padding:.36rem .75rem .36rem 1.9rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;color:var(--text);font:.8rem Arial,sans-serif;outline:none}
+.search-input:focus{border-color:var(--accent)}.search-input::placeholder{color:var(--sub)}
+.pill{padding:.32rem .8rem;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--sub);font:.76rem Arial,sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap}
+.pill:hover{border-color:var(--accent);color:var(--accent)}
+.pill.active[data-cat=all]{background:var(--accent);border-color:var(--accent);color:#111;font-weight:bold}
+.pill.active[data-cat=mammals]{background:var(--mammal);border-color:var(--mammal);color:#fff;font-weight:bold}
+.pill.active[data-cat=reptiles]{background:var(--reptile);border-color:var(--reptile);color:#fff;font-weight:bold}
+.pill.active[data-cat=birds]{background:var(--bird);border-color:var(--bird);color:#fff;font-weight:bold}
+.pill.active[data-cat=fish]{background:var(--fish);border-color:var(--fish);color:#fff;font-weight:bold}
+.pill.active[data-cat=insects]{background:var(--insect);border-color:var(--insect);color:#fff;font-weight:bold}
+.pill.active[data-cat=amphibians]{background:var(--amphibian);border-color:var(--amphibian);color:#fff;font-weight:bold}
+.surprise-btn{padding:.36rem .95rem;border:none;border-radius:20px;background:linear-gradient(135deg,#3a1880,#7030d0);color:#fff;font:.76rem Arial,sans-serif;cursor:pointer;white-space:nowrap}
+.map-section{border-bottom:2px solid var(--border)}
+#world-map{height:380px;width:100%}
+.map-hint{text-align:center;padding:.3rem;color:var(--sub);font:1rem Arial,sans-serif;background:#0b140b;border-bottom:1px solid var(--border)}
+.leaflet-container{background:#060e1e}
+.animal-map-marker{width:34px;height:34px;border-radius:50%;background:rgba(9,15,9,.9);border:2px solid rgba(240,208,122,.5);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;transition:transform .15s;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+.animal-map-marker:hover{transform:scale(1.25);border-color:var(--accent)}
+.animal-map-marker.discovered{border-color:var(--accent);background:rgba(240,208,122,.15)}
+.results-section{padding:1.2rem 1.4rem}
+.results-header{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:.9rem}
+.results-header h2{font-size:1.1rem;color:var(--accent)}
+#results-count{color:var(--sub);font:.78rem Arial,sans-serif}
+#reset-btn{margin-left:auto;padding:.26rem .7rem;background:transparent;border:1px solid var(--border);color:var(--sub);font:.74rem Arial,sans-serif;border-radius:20px;cursor:pointer}
+#reset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.9rem}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.card{border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid var(--border);background:var(--card);animation:slideUp .3s ease backwards;transition:box-shadow .3s,border-color .25s;position:relative}
+.card:hover{box-shadow:0 10px 28px rgba(0,0,0,.6);border-color:rgba(240,208,122,.35)}
+.card-photo{height:155px;position:relative;overflow:hidden}
+.card-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:4.5rem;z-index:1;transition:opacity .3s}
+.card-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;transition:transform .5s,opacity .3s}
+.card:hover .card-photo img{transform:scale(1.07)}
+.card-overlay{position:absolute;inset:0 0 auto 0;height:155px;background:rgba(5,10,5,.88);backdrop-filter:blur(2px);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:.9rem;text-align:center;z-index:3;opacity:0;transition:opacity .2s}
+.card:hover .card-overlay{opacity:1}
+.card-overlay p{font:.78rem/1.5 Arial,sans-serif;color:#dde;margin-bottom:.4rem}
+.card-overlay small{font:.68rem Arial,sans-serif;color:var(--accent)}
+.card-info{padding:.6rem .85rem .7rem;position:relative}
+.card-name{font-size:.88rem;margin-bottom:.28rem}
+.card-row{display:flex;align-items:center;justify-content:space-between}
+.card-check{position:absolute;top:.5rem;right:.7rem;width:17px;height:17px;border-radius:50%;background:var(--accent);color:#111;font:.7rem Arial,sans-serif;font-weight:bold;display:flex;align-items:center;justify-content:center}
+.badge{display:inline-block;padding:.08rem .42rem;border-radius:10px;font:bold .64rem/1.4 Arial,sans-serif;text-transform:uppercase;letter-spacing:.3px}
+.b-mammals{background:rgba(46,110,32,.28);color:#70d450;border:1px solid rgba(46,110,32,.45)}
+.b-reptiles{background:rgba(122,58,16,.28);color:#e08040;border:1px solid rgba(122,58,16,.45)}
+.b-birds{background:rgba(22,72,128,.28);color:#58b0f0;border:1px solid rgba(22,72,128,.45)}
+.b-fish{background:rgba(8,96,96,.28);color:#30d8d8;border:1px solid rgba(8,96,96,.45)}
+.b-insects{background:rgba(112,96,0,.28);color:#e0cc30;border:1px solid rgba(112,96,0,.45)}
+.b-amphibians{background:rgba(74,24,120,.28);color:#c070f0;border:1px solid rgba(74,24,120,.45)}
+.s-badge{display:inline-block;padding:.08rem .42rem;border-radius:10px;font:bold .64rem/1.4 Arial,sans-serif;text-transform:uppercase}
+.s-LC{background:rgba(32,110,32,.2);color:#60d060;border:1px solid rgba(32,110,32,.4)}
+.s-NT{background:rgba(190,170,0,.15);color:#d8c840;border:1px solid rgba(190,170,0,.3)}
+.s-VU{background:rgba(190,110,0,.15);color:#e09030;border:1px solid rgba(190,110,0,.3)}
+.s-EN{background:rgba(190,55,0,.15);color:#e05828;border:1px solid rgba(190,55,0,.3)}
+.s-CR{background:rgba(190,0,0,.15);color:#e02828;border:1px solid rgba(190,0,0,.3)}
+.bg-mammals{background:linear-gradient(135deg,#0e220a,#183818)}.bg-reptiles{background:linear-gradient(135deg,#200e04,#381808)}
+.bg-birds{background:linear-gradient(135deg,#060e28,#0e1e44)}.bg-fish{background:linear-gradient(135deg,#021414,#063030)}
+.bg-insects{background:linear-gradient(135deg,#141000,#282002)}.bg-amphibians{background:linear-gradient(135deg,#0e041c,#1c0838)}
+.empty-state{text-align:center;padding:3rem 2rem;color:var(--sub);font:1rem Arial,sans-serif}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:1000;padding:1rem;opacity:0;pointer-events:none;transition:opacity .22s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:#111c11;border:1px solid #2a422a;border-radius:16px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;position:relative;transform:scale(.94) translateY(10px);transition:transform .22s}
+.modal-overlay.open .modal{transform:scale(1) translateY(0)}
+.modal-close{position:absolute;top:.8rem;right:.8rem;background:rgba(255,255,255,.1);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font:.92rem Arial,sans-serif;line-height:30px;text-align:center;z-index:2}
+.modal-close:hover{background:rgba(255,255,255,.22)}
+.modal-hero{height:230px;position:relative;overflow:hidden;border-radius:16px 16px 0 0}
+.modal-hero img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:1;opacity:0;transition:opacity .3s}
+.modal-hero img.loaded{opacity:1}
+.modal-hero .fallback-hero{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:6.5rem;z-index:0}
+.modal-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(17,28,17,.9) 0%,transparent 55%);z-index:2}
+.modal-hero-title{position:absolute;bottom:.9rem;left:1.3rem;z-index:3}
+.modal-hero-title h2{font-size:1.6rem;line-height:1.1;margin-bottom:.25rem}
+.modal-hero-title em{color:var(--sub);font:.85rem Arial,sans-serif}
+.modal-body{padding:1.1rem 1.4rem 1.6rem}
+.modal-badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem}
+.modal-desc{font:.88rem/1.72 Georgia,serif;margin-bottom:1rem;color:#ccd8bb}
+.facts-head{font:bold .66rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.45rem}
+.facts-list{list-style:none;margin-bottom:.9rem}
+.facts-list li{display:flex;gap:.5rem;align-items:flex-start;padding:.34rem 0;border-bottom:1px solid var(--border);font:.82rem/1.55 Arial,sans-serif;opacity:0;transform:translateX(-8px);transition:opacity .3s,transform .3s}
+.facts-list li.visible{opacity:1;transform:none}.facts-list li:last-child{border-bottom:none}
+.facts-list li::before{content:'▸';color:var(--accent);flex-shrink:0;margin-top:1px}
+.habitat-section{margin-top:.7rem;padding:.75rem;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px}
+.habitat-title{font:bold .66rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.35rem}
+.habitat-name{font:.8rem Arial,sans-serif;color:var(--sub);margin-bottom:.55rem}
+.habitat-btns{display:flex;gap:.45rem;flex-wrap:wrap}
+.habitat-btn{padding:.33rem .82rem;border-radius:20px;border:none;cursor:pointer;font:.74rem Arial,sans-serif;font-weight:bold;display:flex;align-items:center;gap:.32rem;transition:transform .15s;text-decoration:none}
+.habitat-btn:hover{transform:translateY(-2px)}
+.hbtn-sat{background:rgba(19,66,26,.8);color:#90d890}.hbtn-sv{background:rgba(66,19,24,.8);color:#d89090}
+.modal-nav{display:flex;justify-content:space-between;margin-top:1rem;padding-top:.7rem;border-top:1px solid var(--border)}
+.modal-nav button{padding:.38rem .95rem;background:transparent;border:1px solid var(--border);color:var(--sub);font:.78rem Arial,sans-serif;border-radius:20px;cursor:pointer}
+.modal-nav button:hover{border-color:var(--accent);color:var(--accent)}
+@media(max-width:560px){.cards-grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:.6rem}.card-photo,.card-overlay{height:125px}#world-map{height:240px}}
+</style>
+<script src="icons.js"></script>
+<link rel="stylesheet" href="theme.css"/>
+</head>
+<body>
+<header>
+  <a class="back-btn" href="hub.html">← All Continents</a>
+  <div class="logo">🌎 South America — Wildlife Explorer</div>
+  <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
+    <div class="ticker-wrap"><span class="ticker-label">Fact:</span><div id="ticker-track"><span id="ticker"></span></div></div>
+    <div class="disc-badge" onclick="toggleDisc()"><span id="disc-count">0/60</span> explored</div>
+  </div>
+</header>
+<div class="disc-panel" id="disc-panel">
+  <div class="disc-bar-wrap"><div class="disc-bar" id="disc-bar" style="width:0%"></div></div>
+  <p>Explored <span id="disc-text">0</span> of <span id="disc-total">60</span> South American animals</p>
+</div>
+<div class="controls">
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22" stroke-linecap="round"/></svg>
+    <input class="search-input" id="search-input" type="text" placeholder="Search animals…" autocomplete="off"/>
+  </div>
+  <button class="pill active" data-cat="all">All</button>
+  <button class="pill" data-cat="mammals">🐆 Mammals</button>
+  <button class="pill" data-cat="reptiles">🐍 Reptiles</button>
+  <button class="pill" data-cat="birds">🦅 Birds</button>
+  <button class="pill" data-cat="fish">🐟 Fish</button>
+  <button class="pill" data-cat="insects">🦋 Insects</button>
+  <button class="pill" data-cat="amphibians">🐸 Amphibians</button>
+  <button class="surprise-btn" onclick="surpriseMe()">🎲 Surprise!</button>
+</div>
+<div class="map-section"><div id="world-map"></div></div>
+<p class="map-hint">🛰 Satellite imagery · Click animal pins to explore</p>
+<section class="results-section">
+  <div class="results-header">
+    <h2 id="results-title">All South American Animals</h2>
+    <span id="results-count"></span>
+    <button id="reset-btn" style="display:none" onclick="resetCat()">✕ Clear filter</button>
+  </div>
+  <div class="cards-grid" id="cards-grid"></div>
+  <div class="empty-state" id="empty-state" style="display:none">🔭 No animals found.</div>
+</section>
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" role="dialog">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const ANIMALS=[
+// MAMMALS
+{name:'Jaguar',scientific:'Panthera onca',emoji:'🐆',category:'mammals',status:'Near Threatened',wiki:'Jaguar',lat:-3.10,lon:-60.03,habitat:'Amazon Rainforest, Brazil',
+desc:'The largest cat in the Americas and the third-largest in the world — the jaguar has the most powerful bite of any big cat relative to its size, capable of piercing turtle shells and crocodilian skulls.',
+facts:['Most powerful bite of any big cat relative to body size — can pierce turtle shells and caiman skulls','Word "jaguar" comes from the Tupian word yaguara meaning "he who kills with one leap"','Unlike most cats, actively seeks water and is an excellent swimmer','Spots (rosettes) are unique — no two jaguars have identical patterning','Melanistic (black) jaguars have spots visible in certain light — not a separate species']},
+
+{name:'Capybara',scientific:'Hydrochoerus hydrochaeris',emoji:'🦫',category:'mammals',status:'Least Concern',wiki:'Capybara',lat:-6.00,lon:-67.00,habitat:'Pantanal Wetlands, Brazil',
+desc:'The world\'s largest rodent — weighing up to 66 kg — the capybara is a supremely social and semi-aquatic animal that can remain submerged for up to 5 minutes and often hosts other animals on its back.',
+facts:['World\'s largest rodent — up to 66 kg and 1.3 m long','Can submerge for up to 5 minutes — eyes, nostrils, and ears all on the top of the head','Live in groups of 10–20; the dominant male marks territory by rubbing secretions from the morrillo gland on his nose','Birds, monkeys, and even cats often sit on their backs — they are exceptionally tolerant','Produce a specialized soft fecal matter that they eat to extract additional nutrition (coprophagy)']},
+
+{name:'Giant Anteater',scientific:'Myrmecophaga tridactyla',emoji:'🦔',category:'mammals',status:'Vulnerable',wiki:'Giant_anteater',lat:-15.00,lon:-47.90,habitat:'Brazilian Cerrado',
+desc:'Armed with 40-cm tongue capable of 150 flicks per minute and no teeth whatsoever, the giant anteater laps up 35,000 ants and termites daily — using massive claws to crack open mounds reinforced with concrete-hard cement.',
+facts:['No teeth at all — grinds insects between its muscular stomach lining using swallowed grit','Tongue is 60 cm long and flicks in and out 150 times per minute','Body temperature is 32.7°C — the lowest of any placental mammal — to reduce energy needs','Front claws are so powerful they must walk on knuckles to avoid cutting its own feet','Can consume 35,000 insects in a single day; never destroys a nest — always moves on']},
+
+{name:'South American Tapir',scientific:'Tapirus terrestris',emoji:'🦏',category:'mammals',status:'Vulnerable',wiki:'South_American_tapir',lat:-4.50,lon:-73.00,habitat:'Peruvian Amazon',
+desc:'South America\'s largest land mammal — an ancient lineage little-changed for 35 million years — the lowland tapir is a vital seed disperser and forest architect whose dung gardens entire river valleys.',
+facts:['Closest living relatives are horses and rhinos — not pigs, despite appearances','Prehensile snout can grip branches and shovel food into the mouth','Seed dispersers — carry seeds up to 8 km from parent trees; some plants depend entirely on tapirs for dispersal','Excellent swimmers that cross wide Amazon tributaries regularly','Females gestate for 13 months — one of the longest pregnancies of any land mammal']},
+
+{name:'Amazon River Dolphin',scientific:'Inia geoffrensis',emoji:'🐬',category:'mammals',status:'Endangered',wiki:'Amazon_river_dolphin',lat:-3.00,lon:-60.50,habitat:'Amazon River, Brazil',
+desc:'The world\'s largest river dolphin — and the only one that naturally turns pink — the boto\'s flexible neck and unfused cervical vertebrae allow it to turn its head 180° to navigate flooded Amazon forest.',
+facts:['Turns pink with age — pink coloration intensifies with excitement or anger (like a blush)','Neck vertebrae are unfused — can turn head 180° to manoeuvre through flooded forest','Males bring branches and river debris as gifts to potential mates — rare gift-giving behaviour','Echolocation so precise it can detect a coin through river sand','Navigation mythology: local legend says the boto transforms into a handsome man to seduce women']},
+
+{name:'Spectacled Bear',scientific:'Tremarctos ornatus',emoji:'🐻',category:'mammals',status:'Vulnerable',wiki:'Spectacled_bear',lat:-6.70,lon:-78.50,habitat:'Cloud Forest, Northern Peru',
+desc:'The only bear native to South America and the last surviving member of the short-faced bear lineage — the spectacled bear\'s distinctive cream face markings are unique to each individual, like a fingerprint.',
+facts:['Only bear native to South America — and the only surviving short-faced bear species','Facial markings are completely unique — researchers identify individuals by their pattern','Only bear to subsist primarily on plants (95% diet) — specialised molars for grinding vegetation','Excellent tree climbers — build sleeping platforms in tree crowns to rest safely','Inspiration for Paddington Bear — the fictional character came from Peru']},
+
+{name:'Maned Wolf',scientific:'Chrysocyon brachyurus',emoji:'🦊',category:'mammals',status:'Near Threatened',wiki:'Maned_wolf',lat:-14.00,lon:-47.00,habitat:'Brazilian Cerrado',
+desc:'The world\'s tallest wild canid on stilted legs designed for seeing over tall grass — the maned wolf is neither wolf nor fox, has no close living relatives, and emits a roar-bark audible 3 km away.',
+facts:['Tallest wild canid in the world — legs are so long they look stilted; evolved to see over cerrado grass','Neither wolf nor fox — no close living relatives; a "wolf" in a genus of its own','50% of diet is fruit — especially the wolf apple (Solanum lycocarpum) which the animal pollinates','Emits a roar-bark that carries 3 km — described as eerie and otherworldly','Mane along the neck and spine erects during threat displays — reason for the name']},
+
+{name:'Giant Otter',scientific:'Pteronura brasiliensis',emoji:'🦦',category:'mammals',status:'Endangered',wiki:'Giant_otter',lat:-10.00,lon:-65.00,habitat:'Bolivian Amazon',
+desc:'The longest mustelid in the world at nearly 2 m from nose to tail — the giant otter lives in noisy family groups, communicates with 9 distinct vocalisation types, and was hunted almost to extinction for its pelt.',
+facts:['Longest mustelid (weasel family) in the world — up to 1.8 m from snout to tail tip','9 distinct vocalisations — growl, hum, blow, snort, hah, cough, scream, whistle, squeal','Families are highly cooperative — communal fish catches; all members guard the pups','Whisker markings on the throat are unique — researchers identify every individual worldwide','Hunted to near-extinction for its pelt by 1970; now wild population estimated at under 5,000']},
+
+{name:'Ocelot',scientific:'Leopardus pardalis',emoji:'🐆',category:'mammals',status:'Least Concern',wiki:'Ocelot',lat:-1.00,lon:-54.50,habitat:'Amazon Basin, Pará, Brazil',
+desc:'A nocturnal spotted cat with the most complex and beautiful patterning of any American small cat — the ocelot navigates through dense jungle at night using vision 6× more acute than a human\'s in low light.',
+facts:['Vision is 6× more acute than humans in low light — enables night hunting in dense forest','Coat pattern is completely unique — rosettes and stripes never identical between two individuals','Cannot be ambushed from behind — each eye has a unique reflective spot facing rearward','Can rotate ears 180° independently — locating prey by sound as well as sight','Mother raises kittens alone — the male plays no role after mating; litter of 1–2 kittens']},
+
+{name:'Pygmy Marmoset',scientific:'Cebuella pygmaea',emoji:'🐒',category:'mammals',status:'Vulnerable',wiki:'Pygmy_marmoset',lat:-3.50,lon:-72.50,habitat:'Ecuadorian Amazon',
+desc:'The world\'s smallest monkey — weighing as little as 100 g — the pygmy marmoset uses specialised lower incisor teeth to gouge holes in tree bark and feed on the gum that wells out, a behaviour called gummivory.',
+facts:['World\'s smallest true monkey — adult weighs 85–140 g; fits in a human palm','Gouges holes in bark with specialised teeth and drinks the tree gum — one of few gummivorous primates','Can rotate their head 180° to scan for predators without moving their body','Communicate via ultrasonic vocalisations beyond human hearing','Father carries twins on his back for nearly all of the first weeks of life — a rare mammalian behaviour']},
+
+{name:'Black Howler Monkey',scientific:'Alouatta caraya',emoji:'🐒',category:'mammals',status:'Least Concern',wiki:'Black_howler_monkey',lat:-20.00,lon:-58.00,habitat:'Pantanal, Paraguay',
+desc:'Producer of the loudest sound of any land animal — the male howler monkey\'s roar can be heard 5 km through dense forest, amplified by an enlarged hyoid bone that acts like a resonating chamber.',
+facts:['Loudest land animal — males\' roars carry 5 km through dense forest','Hyoid bone is massively enlarged — acts as a resonating chamber to amplify calls','Can smell ripe fruit from 2 km upwind — olfaction is the primary foraging sense','Move slowly to conserve energy — subsist on low-nutritional leaves when fruit is unavailable','Males are black; females and juveniles are olive-gold — dramatic sexual dichromatism']},
+
+{name:'White-faced Spider Monkey',scientific:'Ateles marginatus',emoji:'🐒',category:'mammals',status:'Endangered',wiki:'Ateles_marginatus',lat:-6.00,lon:-55.00,habitat:'Lower Amazon, Brazil',
+desc:'The gymnast of the rainforest canopy — the spider monkey uses its fully prehensile tail as a fifth limb to hang, swing, and feed, and can travel at 35 km/h through the treetops by brachiation.',
+facts:['Prehensile tail is stronger than any of their four limbs — effectively a fifth hand','Brachiate (swing arm-over-arm) at up to 35 km/h through forest canopy','Lack a thumb — more efficient grip for brachiation than a thumb would allow','Extremely sensitive to habitat disturbance — one of the first species lost when logging begins','Act as "the farmers of the forest" — seed dispersal range up to 10 km per day']},
+
+{name:'Guanaco',scientific:'Lama guanicoe',emoji:'🦙',category:'mammals',status:'Least Concern',wiki:'Guanaco',lat:-50.00,lon:-72.00,habitat:'Torres del Paine, Chile',
+desc:'The wild ancestor of the domesticated llama and alpaca — the guanaco thrives from sea level to 5,500 m altitude, from Patagonian steppe to Atacama desert, with blood that carries oxygen far more efficiently than other mammals.',
+facts:['Wild ancestor of both the llama and alpaca — all domestic South American camelids trace to this species','Blood haemoglobin binds oxygen twice as efficiently as most mammals — enables life at 5,500 m altitude','Spit stomach contents as a defence mechanism — can project cud 2 m with precision','Herd sentinels emit a sharp call and all flee simultaneously — effective alarm system','Thick double-layer wool has the same thermal properties as alpaca wool from their domesticated descendants']},
+
+{name:'Patagonian Mara',scientific:'Dolichotis patagonum',emoji:'🐰',category:'mammals',status:'Near Threatened',wiki:'Patagonian_mara',lat:-42.00,lon:-65.00,habitat:'Patagonian Steppe, Argentina',
+desc:'A rabbit-sized rodent that runs like a deer and mates for life — the Patagonian mara\'s strange body plan allows it to reach 45 km/h across open steppe, confusing predators with its bounding gait.',
+facts:['Mates for life — pairs are monogamous; rare in rodents','Runs at up to 45 km/h with a bounding kangaroo-like gait designed to confuse predators','Social "crèche" nurseries — multiple pairs raise pups together in a communal burrow','Herbivorous: grazes grass and cactus throughout the Patagonian steppe','Closest ecological equivalent to the European hare — a convergent evolution example from South America']},
+
+{name:'Giant Armadillo',scientific:'Priodontes maximus',emoji:'🐾',category:'mammals',status:'Vulnerable',wiki:'Giant_armadillo',lat:-8.00,lon:-55.00,habitat:'Xingu Indigenous Park, Brazil',
+desc:'The largest living armadillo — weighing up to 32 kg — the giant armadillo has the most teeth of any land mammal (up to 100 peg-like teeth) and can excavate termite mounds with claws as powerful as a pickaxe.',
+facts:['Largest living armadillo — up to 32 kg and 1.5 m long including tail','Has up to 100 teeth — the most of any land mammal','Can excavate massive termite mounds in minutes with its curved front claws','Rarely photographed or observed — one of the least-studied large mammals in South America','An overturned giant armadillo burrow becomes a permanent den for dozens of other species — keystone digger']},
+
+{name:'Bush Dog',scientific:'Speothos venaticus',emoji:'🐕',category:'mammals',status:'Near Threatened',wiki:'Bush_dog',lat:-5.00,lon:-60.00,habitat:'Amazon Basin, Brazil',
+desc:'One of the rarest and least-known wild dogs in the world — the bush dog hunts in coordinated packs to take prey much larger than itself, including peccaries, and communicates with at least 10 distinct vocalisations.',
+facts:['Uses 10 distinct vocalisations — one of the most vocal canids; packs communicate constantly during hunts','Hunts cooperatively to take prey up to 10× its individual weight — including giant armadillos','Excellent swimmers — will pursue prey into rivers; partially webbed feet','Among the rarest canids in the world — fewer than 15,000 mature individuals estimated','Closest relative is the extinct Speothosian canid from the Pliocene — a true living fossil among dogs']},
+
+{name:'South Andean Deer',scientific:'Hippocamelus bisulcus',emoji:'🦌',category:'mammals',status:'Endangered',wiki:'South_Andean_deer',lat:-47.00,lon:-71.50,habitat:'Patagonian Andes, Chile',
+desc:'The huemul — Chile\'s national animal featured on its coat of arms — was once hunted near to extinction across the Andes; today fewer than 1,500 survive in isolated patches of Patagonian forest.',
+facts:['Chile\'s national animal — featured on the coat of arms since 1834','Population has declined 99% from historic levels — fewer than 1,500 remain','Can navigate sheer cliff faces and loose scree slopes at speed — extraordinary agility','First detailed population survey was completed only in 2002 — an extremely elusive species','Scientists believe the species may survive extinction only through translocation to large island reserves']},
+
+{name:'Coati',scientific:'Nasua nasua',emoji:'🦝',category:'mammals',status:'Least Concern',wiki:'South_American_coati',lat:-8.00,lon:-63.00,habitat:'Rondônia, Brazil',
+desc:'A social omnivore related to raccoons — female coatis travel in noisy bands of up to 30 individuals, foraging through leaf litter with their distinctive long mobile nose, while males live largely solitary lives.',
+facts:['Live in matriarchal bands of up to 30 females with young — males are largely solitary','Long mobile snout can rotate 60° in any direction — perfect for probing leaf litter and bark','Forage by pressing nose to the ground and using snout to overturn soil and debris','Communicate with chirps and barks; females collectively mob predators — even driving off ocelots','Males are ejected from the band except during a brief mating season']},
+
+{name:'Franciscana Dolphin',scientific:'Pontoporia blainvillei',emoji:'🐬',category:'mammals',status:'Vulnerable',wiki:'Franciscana_dolphin',lat:-29.00,lon:-50.00,habitat:'Rio Grande do Sul Coast, Brazil',
+desc:'The smallest marine dolphin in South America — the Franciscana has the longest beak relative to body size of any cetacean, proportionally like a third of its total length, evolved for probing sandy seafloor for fish.',
+facts:['Longest beak relative to body size of any cetacean — up to one-third of total body length','One of the world\'s most threatened dolphins — bycatch in gillnets is the primary threat','Does not bow-ride; avoids boats — extremely shy and difficult to observe','Can echolocate at frequencies up to 140 kHz — among the highest of any cetacean','Population divided into 4 management units across Brazil, Uruguay, and Argentina — each is distinct']},
+
+{name:'Lowland Paca',scientific:'Cuniculus paca',emoji:'🐾',category:'mammals',status:'Least Concern',wiki:'Lowland_paca',lat:-2.50,lon:-55.00,habitat:'Amazon Floodplain, Brazil',
+desc:'A spotted nocturnal rodent that swims, burrows, and plays dead when threatened — the paca\'s resonating cheekbone chambers amplify vocalizations and the species is critical for seed dispersal of large-fruited palms.',
+facts:['Cheekbone (zygoma) is hollow and amplified — the unique skull shape amplifies calls','Plays dead convincingly when captured — will lie completely motionless for minutes','Excellent swimmers — immediately enters water when chased by predators','Critical disperser of large palm seeds (Astrocaryum) that no other medium-sized animal can carry','Among the most important bushmeat species in Amazonia — pressure from hunting is severe']},
+
+// REPTILES
+{name:'Green Anaconda',scientific:'Eunectes murinus',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'Green_anaconda',lat:-6.00,lon:-66.50,habitat:'Llanos Wetlands, Venezuela',
+desc:'The heaviest snake ever recorded — females routinely exceed 90 kg and reach 8 m — the green anaconda kills by constriction, tightening every time the prey exhales until the heart stops from circulatory arrest.',
+facts:['World\'s heaviest snake — females average 30–70 kg; the heaviest confirmed weighed 97.5 kg and measured 5.2 m','Kills by constriction — tightens with each breath the prey takes until circulation stops','Can detect body heat using labial pits along the jaw — hunts effectively at night','Ambush predators near water — lie motionless for weeks before a kill','After feeding, can go 6 months without eating while digesting']},
+
+{name:'Black Caiman',scientific:'Melanosuchus niger',emoji:'🐊',category:'reptiles',status:'Least Concern',wiki:'Black_caiman',lat:-4.00,lon:-70.50,habitat:'Amazon Floodplain, Brazil',
+desc:'The largest predator in the Amazon basin — reaching 5 m and 400 kg — the black caiman\'s recovery from near-extinction after decades of hunting for its prized black skin is one of South America\'s great conservation stories.',
+facts:['Largest predator in the Amazon ecosystem — apex predator of both water and adjacent land','Hunted to near-extinction by 1970 for its distinctive black-patterned skin','Can take prey as large as giant otters, tapirs, and deer — a true apex predator','Builds the largest nest of any reptile in South America — mound nests up to 1.5 m high','Mother guards nest and hatchlings for the first year — unusually attentive reptile parenting']},
+
+{name:'Galápagos Marine Iguana',scientific:'Amblyrhynchus cristatus',emoji:'🦎',category:'reptiles',status:'Vulnerable',wiki:'Galápagos_marine_iguana',lat:-0.63,lon:-90.37,habitat:'Fernandina Island, Galápagos',
+desc:'The only marine lizard in the world — the Galápagos marine iguana dives to 30 m in cold Pacific water to graze algae, then basks on lava rocks and sneezes to expel the salt excreted through nasal glands.',
+facts:['The only lizard in the world that feeds in the sea','Dives to 30 m depth in cold (15°C) Pacific water — must reheat after each dive on lava rocks','Sneezes concentrated salt through specialised nasal glands — causing white crusts on the head','Can slow heart rate by 50% during dives to extend time underwater','Shrink their skeletons during El Niño food shortages — reversibly — a unique vertebrate adaptation']},
+
+{name:'Common Caiman',scientific:'Caiman crocodilus',emoji:'🐊',category:'reptiles',status:'Least Concern',wiki:'Common_caiman',lat:-5.00,lon:-60.00,habitat:'Amazon Basin',
+desc:'The most abundant crocodilian on Earth — the common caiman plays a critical role in Amazonian ecosystems by recycling nutrients through enormous communal dry-season aggregations of hundreds of individuals.',
+facts:['Most abundant crocodilian species on Earth — tens of millions across South America','Form communal aggregations of hundreds in drying pools during dry season','Regulate the fish and waterbird populations of the entire Amazon basin','Females are devoted mothers — carry hatchlings in their mouths to water','Despite their size, they are prey for anacondas, giant otters, and jaguars']},
+
+{name:'Mata Mata',scientific:'Chelus fimbriata',emoji:'🐢',category:'reptiles',status:'Least Concern',wiki:'Mata_mata',lat:-5.00,lon:-68.00,habitat:'Orinoco River System, Venezuela',
+desc:'A masterpiece of camouflage — the mata mata turtle looks exactly like a pile of dead leaves on the river bottom, luring fish close before opening its enormous gape to create a sudden vacuum that inhales prey whole.',
+facts:['Vacuums prey rather than biting — rapid gape expansion creates suction that inhales fish whole','Head resembles dead leaves so perfectly that fish swim directly onto the surface of its face','Cannot chew — must swallow prey whole; digestive acids are extremely concentrated','Breathes by raising long tubular snout to the surface while body remains on the riverbed','One of the most alien-looking turtles on Earth — has inspired countless illustrations of prehistoric animals']},
+
+{name:'Galápagos Giant Tortoise',scientific:'Chelonoidis niger',emoji:'🐢',category:'reptiles',status:'Vulnerable',wiki:'Galápagos_tortoise',lat:-0.40,lon:-91.12,habitat:'Santa Cruz Island, Galápagos',
+desc:'The largest living tortoise — living for over 170 years — the Galápagos giant tortoise inspired Charles Darwin\'s theory of natural selection, with different shell shapes on different islands reflecting distinct evolutionary pressures.',
+facts:['Can live for over 170 years — individuals alive when Darwin visited the islands in 1835 are still alive today','Inspired Darwin\'s theory of natural selection — each island population has a distinct shell shape','Can survive a year without food or water — stored fat and body water','One subspecies (the Pinta Island tortoise) recently went extinct: Lonesome George died in 2012','Adults have no natural predators — but introduced rats eat their eggs and juveniles']},
+
+{name:'South American Rattlesnake',scientific:'Crotalus durissus',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'South_American_rattlesnake',lat:-10.00,lon:-55.00,habitat:'Brazilian Cerrado',
+desc:'The most dangerous snake in South America — its unique neurotoxic and cytotoxic venom combination causes both paralysis and tissue destruction simultaneously, making antivenom treatment far more complex than for other pit vipers.',
+facts:['Only rattlesnake native to South America — found from Mexico to Argentina','Venom combines two distinct toxins: neurotoxic (crotoxin) and cytotoxic (bothropstoxin) — uniquely dangerous','Responsible for a significant fraction of South American snakebite fatalities','Rattle is a unique structure — no other snake in the world has evolved this warning device','Females give birth to live young — up to 20 per litter; no parental care after birth']},
+
+{name:'Emerald Tree Boa',scientific:'Corallus caninus',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'Emerald_tree_boa',lat:-3.00,lon:-60.50,habitat:'Amazon Floodplain, Brazil',
+desc:'A spectacular ambush predator that coils on branches with head at centre — the emerald tree boa strikes downward to seize birds in flight, and has the longest front fangs relative to body size of any non-venomous snake.',
+facts:['Coils perfectly around branches with head at centre — an iconic tree canopy posture','Longest front teeth relative to body size of any non-venomous snake — for gripping slippery birds in flight','Born red or orange; turns green by 1 year old — among the most dramatic colour changes of any reptile','Heat-sensing pits along the lips detect temperature differences of 0.003°C — pinpoints warm-blooded prey in darkness','Identical in appearance and lifestyle to the green tree python of New Guinea — a famous convergent evolution example']},
+
+// BIRDS
+{name:'Andean Condor',scientific:'Vultur gryphus',emoji:'🦅',category:'birds',status:'Vulnerable',wiki:'Andean_condor',lat:-32.50,lon:-70.00,habitat:'Andes Mountains, Chile',
+desc:'The largest flying bird in the world by combined wingspan and weight — the Andean condor soars for hours without a single wingbeat using Andean thermal currents, surveying thousands of square kilometres for carrion.',
+facts:['Largest flying bird in the world by wingspan and body mass combined — wingspan 3.3 m','Can soar for 5 hours without a single wingbeat — exploits thermal currents along Andean cliffs','Live for over 70 years — one of the longest-lived birds on Earth','Breed only once every 2 years — among the slowest reproductive rates of any bird','Sacred bird in Andean cultures — appears in more Pre-Columbian art than any other animal']},
+
+{name:'Hyacinth Macaw',scientific:'Anodorhynchus hyacinthinus',emoji:'🦜',category:'birds',status:'Vulnerable',wiki:'Hyacinth_macaw',lat:-17.00,lon:-57.00,habitat:'Pantanal, Brazil',
+desc:'The largest flying parrot in the world — 100 cm from beak to tail tip — the hyacinth macaw\'s bill exerts enough force to crack a coconut, yet the same bill is used with pinpoint precision to peel and feed a partner grapes.',
+facts:['World\'s largest flying parrot — up to 1 m long and 1.7 kg','Beak can crack coconuts — the strongest bite force of any parrot species','Mates for life — pairs reinforce bonds with mutual preening and feeding sessions for 50+ years','Highly mobile: travel up to 500 km following seasonal fruit availability in the Pantanal','Population in serious decline — fewer than 6,500 remain in the wild; captive trade was catastrophic in the 1980s']},
+
+{name:'Scarlet Macaw',scientific:'Ara macao',emoji:'🦜',category:'birds',status:'Least Concern',wiki:'Scarlet_macaw',lat:4.00,lon:-53.00,habitat:'Surinamese Amazon',
+desc:'The icon of South American jungle — the scarlet macaw\'s vivid red, yellow, and blue plumage has made it the world\'s most recognised parrot and a symbol of tropical biodiversity — and a target for illegal wildlife trade.',
+facts:['Can live to 75 years in captivity — one of the longest-lived birds','Feeds on clay licks (mineral deposits) — neutralises toxins from unripe seeds and extracts sodium','Individual recognise over 100 individuals by face, voice, and body language','Zygodactyl feet (two toes forward, two back) plus flexible beak used as a "third hand" for climbing','First flight at 3 months; remains with parents 1–2 years — unusual long parental investment for a bird']},
+
+{name:'Harpy Eagle',scientific:'Harpia harpyja',emoji:'🦅',category:'birds',status:'Vulnerable',wiki:'Harpy_eagle',lat:-5.00,lon:-57.00,habitat:'Amazon Basin, Pará, Brazil',
+desc:'The most powerful eagle in the world — with talons larger than a grizzly bear\'s claws — the harpy eagle hunts monkeys and sloths at the tops of the rainforest canopy with ambush attacks of extraordinary precision.',
+facts:['Most powerful eagle in the world — talons can exert 42 kg of crushing force (match a grizzly\'s claws)','Facial disc focuses sound like an owl — allows precise sound location in dense forest canopy','Takes prey as large as adult sloths and adult howler monkeys','Raise only one chick per nesting attempt — and only every 2–3 years; extremely slow reproduction','Named after the harpy — the Greek mythological creature with a woman\'s face and a bird\'s body']},
+
+{name:'Toco Toucan',scientific:'Ramphastos toco',emoji:'🦜',category:'birds',status:'Least Concern',wiki:'Toco_toucan',lat:-16.00,lon:-47.00,habitat:'Brazilian Cerrado',
+desc:'The toucan\'s enormous bill — up to a third of the bird\'s total length — acts as a thermal radiator, shunting blood flow to regulate body temperature; a radiator, not a weapon, and extremely lightweight (hollow inside).',
+facts:['Bill is one-third of body length but weighs almost nothing — hollow with a keratin lattice inside','Functions as a radiator — blood pumped in regulates body temperature; can dump 400% of metabolic heat','Bill is used to reach fruit on branches too thin to land on — a dietary access tool','Toucan\'s nest inside natural tree cavities that fit them only when they tuck bill under wing','Fruit swallowed whole — digestion removes pulp; seeds excreted intact → key forest regenerator']},
+
+{name:'Greater Rhea',scientific:'Rhea americana',emoji:'🐦',category:'birds',status:'Near Threatened',wiki:'Greater_rhea',lat:-20.00,lon:-57.00,habitat:'Pantanal, Brazil',
+desc:'South America\'s largest bird and a flightless relative of the ostrich — the greater rhea is unusual in that the male incubates eggs from up to 12 different females in a single nest and raises all chicks alone.',
+facts:['South America\'s largest bird — up to 1.4 m tall and 40 kg','Males are the sole incubators and parents — collect eggs from up to 12 different females','Runs at 60 km/h using their wings as rudders to turn — cannot fly','Form mixed-species flocks with deer and pampas animals for predator detection','Voice is a booming call produced by an inflatable oesophageal sac']},
+
+{name:'Blue-footed Booby',scientific:'Sula nebouxii',emoji:'🐦',category:'birds',status:'Least Concern',wiki:'Blue-footed_booby',lat:-0.90,lon:-91.00,habitat:'Galápagos Islands, Ecuador',
+desc:'Famous for its improbable courtship dance — the male lifts its vivid blue feet one at a time in a high-stepping display — the blue-footed booby dives into the Pacific from 30 m height at 97 km/h with closed nostrils.',
+facts:['Male courtship involves lifting bright blue feet one at a time in an exaggerated high-step dance','Feet colour from carotenoid pigments in fish diet — brighter feet = healthier male = more fish caught','Dives from 30 m height at 97 km/h — closed nostrils and reinforced skull absorb impact','Can hunt cooperatively — groups herd fish into a tight ball then plunge-dive simultaneously','Charles Darwin observed them on the Beagle voyage and noted their total fearlessness of humans']},
+
+{name:'Cock-of-the-rock',scientific:'Rupicola peruvianus',emoji:'🐦',category:'birds',status:'Least Concern',wiki:'Rupicola_peruvianus',lat:-12.50,lon:-75.50,habitat:'Cloud Forest, Peru',
+desc:'The males compete at traditional lek sites deep in the cloud forest — brilliant orange-red birds performing elaborate courtship displays that females observe for hours before selecting a mate.',
+facts:['Lek displays involve 20+ males competing simultaneously on traditional log stages in the forest','Females visit multiple leks and observe for days before selecting a mate — extreme female choice','Male\'s disc-shaped crest is actually two layers of feathers merged over the bill','National bird of Peru','Found only between 500–2,400 m elevation in Andean cloud forests — extremely precise habitat requirement']},
+
+{name:'Hoatzin',scientific:'Opisthocomus hoazin',emoji:'🐦',category:'birds',status:'Least Concern',wiki:'Hoatzin',lat:-5.50,lon:-67.50,habitat:'Amazon Floodplain, Brazil',
+desc:'A flying ruminant — the hoatzin ferments its food in a specialised crop like a cow, which gives it a permanent manure-like smell earning it the nickname "stinkbird" — and its chicks hatch with wing claws that disappear by adulthood.',
+facts:['Only bird that ferments food in a specialised crop — smells strongly of fresh manure (nicknamed "stinkbird")','Chicks hatch with functional wing claws — used to climb out of the nest like a reptile; disappear in adulthood','Oldest known bird lineage — its DNA diverged from all other living birds 64 million years ago','Almost incapable of powered flight — flight muscles are reduced to make room for the enlarged crop','Classified alone in its own order Opisthocomiformes — no other living bird is closely related']},
+
+{name:'Jabiru Stork',scientific:'Jabiru mycteria',emoji:'🦢',category:'birds',status:'Least Concern',wiki:'Jabiru',lat:-15.00,lon:-57.00,habitat:'Pantanal, Mato Grosso, Brazil',
+desc:'South America\'s tallest flying bird — standing 1.4 m tall with a 2.8 m wingspan — the jabiru\'s bare red throat pouch expands when excited, and nesting pairs use the same colossal stick nest for decades.',
+facts:['Tallest flying bird in South America — up to 1.4 m; wingspan to 2.8 m','Bare red throat pouch engorges with blood when excited — visible colour change during courtship','Builds one of the heaviest bird nests in the Americas — up to 1 metre thick and 2 m wide','Uses the same nest for decades — adding material each year; some nests are over 100 years old','National symbol of Belize (range extends north through Central America)']},
+
+{name:'Magellanic Penguin',scientific:'Spheniscus magellanicus',emoji:'🐧',category:'birds',status:'Near Threatened',wiki:'Magellanic_penguin',lat:-45.00,lon:-65.40,habitat:'Punta Tombo, Patagonia, Argentina',
+desc:'The most abundant penguin species in South America — over a million breed at the world\'s largest Magellanic colony in Patagonia — these penguins swim 3,200 km each way in their annual migration to Brazilian waters.',
+facts:['Over 1 million breed at Punta Tombo, Argentina — world\'s largest Magellanic penguin colony','Migrate 3,200 km each way between Patagonian breeding grounds and Brazilian feeding waters','Mate for life; reunite each year after 6 months apart at the same burrow entrance','Burrow nesters — dig tunnels up to 2 m deep to shelter eggs from Patagonian wind','Swim at 30 km/h — porpoising (leaping in and out of water) to breathe without losing speed']},
+
+// FISH
+{name:'Red-bellied Piranha',scientific:'Pygocentrus nattereri',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Red-bellied_piranha',lat:-6.50,lon:-65.00,habitat:'Madeira River, Brazil',
+desc:'Far more misunderstood than menacing — the red-bellied piranha generally scavenges and rarely attacks healthy animals; their frenzied feeding behaviour is triggered by overcrowding and starvation, not blood alone.',
+facts:['Frenzied feeding behaviour triggered by overcrowding and starvation — not the smell of blood per se','Scale-eating (lepidophagy) is a common food source — they nibble scales off living fish','Parental fish guard nest site and young aggressively — unusual for a bony fish','Theodore Roosevelt sensationalized their danger in his 1914 account — largely fabricating the "man-eater" myth','Freshwater ecosystem engineers — their feeding on carcasses prevents disease in rivers']},
+
+{name:'Electric Eel',scientific:'Electrophorus electricus',emoji:'⚡',category:'fish',status:'Least Concern',wiki:'Electric_eel',lat:-5.00,lon:-60.00,habitat:'Orinoco River, Venezuela',
+desc:'Despite its name, the electric eel is not an eel but a knifefish — and generates electric organ discharges of up to 860 volts, capable of knocking a horse off its feet, using 6,000 electroplaques in its specially modified body.',
+facts:['Not actually an eel — a knifefish; only distantly related to true eels','Generates up to 860 volts — the highest voltage of any living animal','80% of body volume consists of the electric organ made of 6,000 modified muscle cells','Uses low-voltage pulses (up to 10 V) for navigation and communication; high voltage only for hunting and defence','Breathes air from the surface — gills have degenerated; can drown if unable to surface']},
+
+{name:'Arapaima',scientific:'Arapaima gigas',emoji:'🐟',category:'fish',status:'Data Deficient',wiki:'Arapaima',lat:-4.00,lon:-72.00,habitat:'Upper Amazon, Peru',
+desc:'One of the world\'s largest freshwater fish — reaching 3 m and 200 kg — the arapaima is an air-breather that must surface every 5–15 minutes, making it uniquely vulnerable to hunters and a critically important species ecologically.',
+facts:['One of the world\'s largest freshwater fish — up to 3 m and 200 kg','Breathes air — must surface every 5–15 minutes; gills supplemented by a modified, lung-like swim bladder','Armour of layered scales absorbs piranha bites — scale structure being studied for bio-inspired armour design','Females lay eggs in a nest and males brood the hatchlings near their head for protection','Rapid decline from overfishing — traditional oral-history-based management by indigenous communities is most effective']},
+
+{name:'South American Lungfish',scientific:'Lepidosiren paradoxa',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'South_American_lungfish',lat:-10.00,lon:-65.00,habitat:'Madeira Basin, Bolivia',
+desc:'One of the closest living relatives of the first land vertebrates — the South American lungfish breathes air via true lungs and can survive buried in mud for months during drought, entering complete dormancy.',
+facts:['Has functional lungs and breathes air — one of the few living fish to do so','Can survive drought by burrowing into mud and entering estivation — surviving months without water','Males develop filamentous gills on hind fins during breeding — to oxygenate eggs in oxygen-poor water','One of the closest living relatives to the ancestor of all land vertebrates','DNA unchanged in any significant way for 400 million years — one of the most ancient lineages alive']},
+
+{name:'Pacu',scientific:'Colossoma macropomum',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Tambaqui',lat:-3.50,lon:-62.00,habitat:'Amazon River, Brazil',
+desc:'A relative of the piranha with human-like crushing molars designed to crack the tough seeds of Amazonian palms — the pacu is the Amazon\'s most important seed disperser, swallowing seeds as large as golf balls and depositing them far downstream.',
+facts:['Has human-like flat molar teeth designed for cracking hard palm seeds — not for attacking mammals','Weighs up to 44 kg — one of the largest fish in the Amazon by body weight','Primary seed disperser for riverside palm and rubber trees — responsible for regenerating flooded forests','Swallows seeds whole and deposits them up to 70 km from the parent tree — a vital forest architect','Now farmed at massive scale in South America — one of the continent\'s most economically important fish']},
+
+{name:'Candiru',scientific:'Vandellia cirrhosa',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Candiru',lat:-4.00,lon:-60.00,habitat:'Solimões River, Brazil',
+desc:'One of the most feared freshwater fish in the world — the candiru is a tiny parasitic catfish that uses chemoreception to locate gill openings of other fish by following ammonia plumes, then lodges itself inside with backward-pointing spines.',
+facts:['Parasitic on other fish — detects ammonia from gill openings and lodges inside with backward spines','Translucent body allows researchers to examine its stomach contents while it is still alive','One of very few parasitic vertebrates in the world','Extremely difficult to remove once lodged — requires surgery in many cases','The most feared freshwater fish in Amazon communities — though human parasitism cases are extremely rare']},
+
+{name:'Arapaima',scientific:'Arapaima leptosoma',emoji:'🐟',category:'fish',status:'Data Deficient',wiki:'Bull_shark',lat:-3.00,lon:-58.00,habitat:'Amazon River at Manaus, Brazil',
+desc:'Bull sharks can live in freshwater — individuals swim 4,000 km up the Amazon from the Atlantic, making them one of the few sharks found deep in the interior of South America.',
+facts:['One of the few sharks that can survive indefinitely in freshwater — kidneys adjust salt balance','Ascend the Amazon over 4,000 km from the ocean — documented as far as Iquitos, Peru','Most dangerous shark in rivers worldwide — responsible for the majority of freshwater shark bites','Can detect one part per million of blood in the water','Give birth to live young in estuaries — juveniles spend early life in freshwater before returning to the sea']},
+
+// INSECTS
+{name:'Blue Morpho Butterfly',scientific:'Morpho menelaus',emoji:'🦋',category:'insects',status:'Least Concern',wiki:'Morpho_menelaus',lat:-5.00,lon:-57.00,habitat:'Amazon Basin, Brazil',
+desc:'The iridescent blue of the morpho\'s wings is not pigment but structural colour — nanoscale lamellae on each scale scatter light so that the wing appears to glow with an intensity visible from moving aircraft above the forest.',
+facts:['Wing colour is structural, not pigment — nanoscale layers cause interference that produces pure blue','Visible from aircraft flying over the forest — the flash of blue from a morpho has been confused with light signals','Underside is dull brown with eyespots — conceals the butterfly when wings are folded','Scales inspired research into anti-counterfeiting materials and self-cleaning surfaces','Caterpillar feeds on plants containing alkaloids that make the adult butterfly toxic to most predators']},
+
+{name:'Rhinoceros Beetle',scientific:'Dynastes hercules',emoji:'🪲',category:'insects',status:'Least Concern',wiki:'Dynastes_hercules',lat:4.00,lon:-75.00,habitat:'Colombian Cloud Forest',
+desc:'The world\'s longest insect species including its horn — the Hercules beetle\'s horn can exceed the length of its body, yet the beetle uses it for male-male combat to unseat rivals from tree trunks where females congregate.',
+facts:['World\'s longest insect when horn is included — horn alone can be longer than body; total up to 18 cm','Can carry 850× its body weight — the highest ratio of any animal on Earth relative to size','Horn is used in combat — males lever rivals from perches; the longer horn wins most contests','Male horn length varies enormously based on larval nutrition — a nutritional signal of male quality','Larvae spend 2–3 years in decomposing wood before emerging; adults live for only a few months']},
+
+{name:'Amazon Bullet Ant',scientific:'Paraponera clavata',emoji:'🐜',category:'insects',status:'Least Concern',wiki:'Bullet_ant',lat:-2.00,lon:-60.50,habitat:'Amazon Rainforest, Brazil',
+desc:'Inflicts the most painful insect sting known to science — rated 4+ on the Schmidt Pain Index (the top of the scale) and described as "pure, intense, brilliant pain, like walking over flaming charcoal with a 3-inch nail embedded in your heel."',
+facts:['Rated 4+ on the Schmidt Pain Index — the most painful sting of any insect on Earth','Pain lasts for 24 hours — described by Schmidt as "pure, intense, brilliant pain like lightning"','Used in Sateré-Mawé initiation rites — boys wear gloves of woven ants for 10 minutes to become warriors','Solitary foragers that defend their colony aggressively — one scout can summon dozens of nestmates','Venom contains poneratoxin, a peptide that disrupts nerve cell ion channels — currently under research for pain treatment']},
+
+{name:'Glasswinged Butterfly',scientific:'Greta oto',emoji:'🦋',category:'insects',status:'Least Concern',wiki:'Greta_oto',lat:9.00,lon:-79.50,habitat:'Cloud Forest, Panama/Colombia',
+desc:'A butterfly with transparent wings — the wing membrane between veins is nearly free of scales, making it almost entirely see-through and rendering the butterfly nearly invisible in its cloud forest habitat.',
+facts:['Transparent wings — membrane between the veins lacks almost all the pigment scales present in other butterflies','Transparency is an adaptation for camouflage — invisible from most angles in dappled forest light','Can migrate over 12 km per day despite being just 6 cm in wingspan','Caterpillars sequester alkaloids from host plants — adults are toxic to most vertebrates','Males gather plant-derived alkaloids from withered plants to produce pheromones — chemical courtship']},
+
+{name:'Leafcutter Ant',scientific:'Atta cephalotes',emoji:'🐜',category:'insects',status:'Least Concern',wiki:'Leafcutter_ant',lat:-5.00,lon:-60.50,habitat:'Amazon Basin, Brazil',
+desc:'The world\'s largest ant colonies — up to 8 million workers — leafcutters cut and carry pieces of leaf underground not to eat, but to cultivate a specific fungus that is the colony\'s only food source.',
+facts:['Colony size up to 8 million workers organised into 5 distinct morphological castes by head size','Cut leaves are not eaten — used as a substrate for growing the fungus Leucoagaricus gongylophorus which IS the food','Fungus is a monoculture tended for over 30 million years — the oldest agricultural system on Earth','Trails extend 250 m from the nest — the equivalent of a human walking 600 km to work every day','Produce more biomass per hectare of Amazon than any mammal species — a dominant ecological force']},
+
+{name:'Owl Butterfly',scientific:'Caligo memnon',emoji:'🦋',category:'insects',status:'Least Concern',wiki:'Caligo_memnon',lat:-5.00,lon:-78.00,habitat:'Andean Foothills, Ecuador',
+desc:'Sports massive eyespots on its hindwings that precisely mimic the eyes of a large owl — triggering predator-avoidance responses in lizards and birds that would otherwise eat the butterfly.',
+facts:['Eyespot pattern mimics an owl\'s face — complete with circular iris, reflective "pupil", and apparent eyelid','Flies at dusk when light levels confuse the owl-face illusion most effectively','Wingspread up to 20 cm — among the largest butterflies in the Americas','Caterpillars congregate in groups that collectively resemble a large snake','Adults prefer fermenting fruit; commercial banana plantations attract massive congregations']},
+
+// AMPHIBIANS
+{name:'Blue Poison Dart Frog',scientific:'Dendrobates tinctorius',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'Dyeing_poison_dart_frog',lat:4.00,lon:-56.00,habitat:'Sipaliwini, Suriname',
+desc:'The vivid blue warns predators that a single frog carries enough poison to kill 20,000 mice — yet its toxin comes entirely from the ants and mites it eats in the wild; captive frogs raised on fruit flies are completely non-toxic.',
+facts:['Toxicity comes entirely from diet — captive frogs fed fruit flies are completely harmless','Enough poison in one frog to kill 20,000 mice — one of the most toxic animals per gram on Earth','Indigenous people used skin secretions to poison blowgun darts — origin of the name "poison dart frog"','Father carries tadpoles on his back to brood pools on high-up bromeliad leaves','Blue coloration is a textbook example of aposematism — bright colour as a warning signal']},
+
+{name:'Glass Frog',scientific:'Centrolenidae',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'Glass_frog',lat:-0.50,lon:-77.00,habitat:'Ecuadorian Amazon',
+desc:'The glass frog\'s translucent belly allows you to see its beating heart, circulating red blood cells, and developing eggs — one species even camouflages its red blood by hiding red blood cells in the liver when resting.',
+facts:['Ventral skin is transparent — a beating heart, green liver, and eggs visible without dissection','One species (Fleischmann\'s glass frog) hides its red blood cells in the liver while resting — becoming effectively colourless','Males guard egg masses on leaves above streams — guard them against dehydration by sitting on them','Found only in humid cloud and lowland forests — altitude range 400–2,000 m','300+ species in the family Centrolenidae — less than 10% fully described']},
+
+{name:'Amazon Milk Frog',scientific:'Trachycephalus resinifictrix',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'Amazon_milk_frog',lat:-2.50,lon:-60.00,habitat:'Brazilian Amazon near Manaus',
+desc:'Named for the sticky white milk-like secretion it produces when stressed — used as defence — the Amazon milk frog breeds exclusively in water-filled tree holes in the forest canopy, never descending to the ground.',
+facts:['Secretes a sticky white fluid from skin when stressed — mildly toxic; origin of the name','Breeds in water trapped inside tree holes and bromeliads in the high forest canopy','Males call from inside tree holes where they will later guard the eggs','Tadpoles eat unfertilised eggs laid by the female specifically to feed them','One of the most popular exotic frogs in the amphibian hobby — sustainable captive breeding is now standard']},
+
+{name:'Surinam Toad',scientific:'Pipa pipa',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'Pipa_pipa',lat:5.50,lon:-55.00,habitat:'Suriname Coastal Swamps',
+desc:'One of the most bizarre reproductive strategies in all vertebrates — the female carries fertilised eggs embedded in the spongy skin of her back, where they develop through tadpole stage and emerge as fully formed froglets.',
+facts:['Eggs are pushed into the female\'s back skin during amplexus — develop through an entire tadpole stage inside individual skin pockets','Young emerge from individual skin pockets as fully formed miniature frogs — no free-swimming tadpole stage','Completely flat body — resembles a dead leaf on the riverbed; an extreme camouflage adaptation','No tongue — uses suction created by the hyoid bone to vacuum small prey into its mouth','Lateral line system detects water movements from prey — effectively a motion detector along the body']
+}
+];
+
+const SC={'Least Concern':'LC','Near Threatened':'NT','Vulnerable':'VU','Endangered':'EN','Critically Endangered':'CR','Data Deficient':'DD'};
+let activeCat='all',searchQ='',currentList=[],currentModal=null;
+const disc=new Set(JSON.parse(localStorage.getItem('ae_sa_disc')||'[]'));
+const wiki={};let map=null,markers=[];
+async function getWikiImg(t){if(wiki[t]!==undefined)return wiki[t];try{const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);const d=await r.json();const u=d.originalimage?.source||d.thumbnail?.source||null;wiki[t]=u;return u;}catch{wiki[t]=null;return null;}}
+function initMap(){map=L.map('world-map',{center:[-15,-60],zoom:3,minZoom:2,maxZoom:18});L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:18}).addTo(map);L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{attribution:'',maxZoom:18,opacity:0.55}).addTo(map);updateMarkers();map.on('zoomend moveend',updateMarkers);}
+function updateMarkers(){markers.forEach(m=>map.removeLayer(m));markers=[];if(map.getZoom()<3)return;filtered().forEach(a=>{const el=L.divIcon({html:`<div class="animal-map-marker${disc.has(ANIMALS.indexOf(a))?' discovered':''}" title="${a.name}">${catIcon(a.category)}</div>`,className:'',iconSize:[34,34],iconAnchor:[17,17]});const m=L.marker([a.lat,a.lon],{icon:el}).addTo(map);m.on('click',()=>openModal(ANIMALS.indexOf(a)));markers.push(m);});}
+function filtered(){const q=searchQ.toLowerCase().trim();return ANIMALS.filter(a=>{const cm=activeCat==='all'||a.category===activeCat;const sm=!q||a.name.toLowerCase().includes(q)||a.scientific.toLowerCase().includes(q)||a.desc.toLowerCase().includes(q)||a.facts.some(f=>f.toLowerCase().includes(q));return cm&&sm;});}
+function renderCards(){const grid=document.getElementById('cards-grid');const empty=document.getElementById('empty-state');const list=filtered();currentList=list;document.getElementById('results-count').textContent=list.length+' animal'+(list.length===1?'':'s');document.getElementById('results-title').textContent=activeCat==='all'?'All South American Animals':'S. American '+cap(activeCat);document.getElementById('reset-btn').style.display=activeCat==='all'?'none':'inline-block';if(!list.length){grid.innerHTML='';empty.style.display='block';return;}empty.style.display='none';grid.innerHTML=list.map((a,i)=>{const idx=ANIMALS.indexOf(a);return `<div class="card" onclick="openModal(${idx})" style="animation-delay:${i*22}ms"><div class="card-photo bg-${a.category}"><span class="card-fallback">${catIcon(a.category)}</span><img data-wiki="${a.wiki}" alt="${a.name}" loading="lazy"/></div><div class="card-overlay"><p>${a.facts[0].substring(0,88)}…</p><small>TAP TO EXPLORE <svg class="svg-ic"><use href="#ic-arrow-right"/></svg></small></div><div class="card-info">${disc.has(idx)?'<span class="card-check"><svg class="svg-ic"><use href="#ic-check"/></svg></span>':''}<div class="card-name">${a.name}</div><div class="card-row"><span class="badge b-${a.category}">${a.category}</span></div></div></div>`;}).join('');grid.querySelectorAll('img[data-wiki]').forEach(img=>{getWikiImg(img.dataset.wiki).then(u=>{if(u){img.src=u;img.onload=()=>{img.classList.add('loaded');img.previousElementSibling.style.opacity=0};}});});}
+function openModal(idx){const a=ANIMALS[idx];const sc=SC[a.status]||'LC';const inL=currentList.indexOf(a);const pr=inL>0?ANIMALS.indexOf(currentList[inL-1]):null;const nx=inL<currentList.length-1?ANIMALS.indexOf(currentList[inL+1]):null;const sat=`https://maps.google.com/maps?q=${a.lat},${a.lon}&t=k`;const sv=`https://maps.google.com/maps?q=${a.lat},${a.lon}&layer=c&cbll=${a.lat},${a.lon}`;document.getElementById('modal-content').innerHTML=`<div class="modal-hero bg-${a.category}"><div class="fallback-hero">${catIcon(a.category)}</div><img data-wiki="${a.wiki}" alt="${a.name}"/><div class="modal-hero-grad"></div><div class="modal-hero-title"><h2>${a.name}</h2><em>${a.scientific}</em></div></div><div class="modal-body"><div class="modal-badges"><span class="badge b-${a.category}">${a.category}</span><span class="s-badge s-${sc}">${a.status}</span></div><p class="modal-desc">${a.desc}</p><div class="facts-head">Wild Facts</div><ul class="facts-list" id="facts-list">${a.facts.map(f=>`<li>${f}</li>`).join('')}</ul><div class="habitat-section"><div class="habitat-title">Habitat</div><div class="habitat-name"><svg class="svg-ic"><use href="#ic-pin"/></svg> ${a.habitat}</div><div class="habitat-btns"><a href="${sat}" target="_blank" class="habitat-btn hbtn-sat"><svg class="svg-ic"><use href="#ic-satellite"/></svg> Google Maps Satellite</a><a href="${sv}" target="_blank" class="habitat-btn hbtn-sv"><svg class="svg-ic"><use href="#ic-camera"/></svg> Google Street View</a></div></div><div class="modal-nav"><button onclick="event.stopPropagation();openModal(${pr})" ${pr===null?'disabled style="opacity:.3"':''}><svg class="svg-ic"><use href="#ic-arrow-left"/></svg> Prev</button><button onclick="event.stopPropagation();openModal(${nx})" ${nx===null?'disabled style="opacity:.3"':''}>Next <svg class="svg-ic"><use href="#ic-arrow-right"/></svg></button></div></div>`;document.getElementById('modal-overlay').classList.add('open');document.body.style.overflow='hidden';currentModal=idx;disc.add(idx);localStorage.setItem('ae_sa_disc',JSON.stringify([...disc]));updateDiscUI();const img=document.querySelector('#modal-content .modal-hero img');getWikiImg(a.wiki).then(u=>{if(u&&img){img.src=u;img.onload=()=>img.classList.add('loaded');}});setTimeout(()=>{document.querySelectorAll('#facts-list li').forEach((li,i)=>{setTimeout(()=>li.classList.add('visible'),i*70);});},180);}
+function updateDiscUI(){const n=disc.size,t=ANIMALS.length;document.getElementById('disc-count').textContent=`${n}/${t}`;document.getElementById('disc-text').textContent=n;document.getElementById('disc-total').textContent=t;document.getElementById('disc-bar').style.width=`${(n/t)*100}%`;}
+function toggleDisc(){const p=document.getElementById('disc-panel');p.style.display=p.style.display==='block'?'none':'block';}
+function surpriseMe(){const l=filtered();if(!l.length)return;openModal(ANIMALS.indexOf(l[Math.floor(Math.random()*l.length)]));}
+function resetCat(){activeCat='all';document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active',p.dataset.cat==='all'));renderCards();updateMarkers();}
+function cap(s){return s[0].toUpperCase()+s.slice(1)}
+function initTicker(){const facts=ANIMALS.flatMap(a=>a.facts.map(f=>a.name+' — '+f)).sort(()=>Math.random()-.5);const track=document.getElementById('ticker-track');const el=document.getElementById('ticker');let idx=0,anim=null,paused=false;function playNext(){el.style.transition='opacity 0.4s';el.style.opacity='0';setTimeout(()=>{el.textContent=facts[idx++%facts.length];el.style.transition='none';const cw=track.clientWidth;el.style.transform=`translateX(${cw}px)`;void el.offsetWidth;el.style.transition='opacity 0.4s';el.style.opacity='1';const tw=el.scrollWidth;const dur=(cw+tw)/50*1000;if(anim)anim.cancel();anim=el.animate([{transform:`translateX(${cw}px)`},{transform:`translateX(-${tw}px)`}],{duration:dur,easing:'linear',fill:'forwards'});if(paused)anim.pause();anim.onfinish=()=>setTimeout(playNext,400);},400);}track.addEventListener('mouseenter',()=>{paused=true;if(anim)anim.pause();});track.addEventListener('mouseleave',()=>{paused=false;if(anim)anim.play();});playNext();}
+document.addEventListener('DOMContentLoaded',()=>{initMap();renderCards();updateDiscUI();initTicker();});
+document.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',function(){document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));this.classList.add('active');activeCat=this.dataset.cat;renderCards();updateMarkers();}));
+document.getElementById('search-input').addEventListener('input',function(){searchQ=this.value;renderCards();updateMarkers();});
+document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target.id==='modal-overlay')closeModal();});
+document.getElementById('modal-close').addEventListener('click',closeModal);
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');document.body.style.overflow='';currentModal=null;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.key==='ArrowRight'&&currentModal!==null){const i=currentList.indexOf(ANIMALS[currentModal]);if(i<currentList.length-1)openModal(ANIMALS.indexOf(currentList[i+1]));}if(e.key==='ArrowLeft'&&currentModal!==null){const i=currentList.indexOf(ANIMALS[currentModal]);if(i>0)openModal(ANIMALS.indexOf(currentList[i-1]));}});
+</script>
+<script src="paw-cursor.js" defer></script>
+</body>
+</html>

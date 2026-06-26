@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>All Animals — Animal Explorer</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#060d06;--card:#101a10;--border:#1a301a;--text:#ddeacc;--sub:#6a8a5a;--accent:#f0d07a}
+body{background:var(--bg);color:var(--text);font-family:Georgia,serif;min-height:100vh}
+
+/* ── HEADER ── */
+header{text-align:center;padding:2rem 1.5rem 1rem;background:linear-gradient(180deg,#030a03,transparent);position:relative}
+.back-btn{position:absolute;top:1.5rem;left:1.5rem;display:inline-flex;align-items:center;gap:.4rem;
+  padding:.4rem 1rem;background:rgba(240,208,122,.08);border:1px solid rgba(240,208,122,.25);
+  border-radius:20px;color:var(--accent);text-decoration:none;font:.78rem Arial,sans-serif;
+  transition:background .2s}
+.back-btn:hover{background:rgba(240,208,122,.18)}
+h1{font-size:2rem;color:var(--accent);letter-spacing:1px;margin-bottom:.3rem}
+.header-sub{color:var(--sub);font:.85rem Arial,sans-serif;margin-bottom:.6rem}
+.disc-badge{display:inline-block;padding:.3rem 1rem;background:rgba(240,208,122,.08);
+  border:1px solid rgba(240,208,122,.25);border-radius:16px;font:.75rem Arial,sans-serif;color:var(--accent)}
+
+/* ── CONTINENT FILTERS ── */
+.cf-section{max-width:1100px;margin:1.5rem auto 0;padding:0 1.5rem}
+.cf-title{font:.75rem Arial,sans-serif;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem}
+.cf-row{display:flex;gap:.75rem;flex-wrap:wrap}
+.cf-btn{cursor:pointer;border-radius:14px;overflow:hidden;border:2px solid var(--border);
+  background:var(--card);transition:transform .2s,border-color .2s,box-shadow .2s;
+  flex:1;min-width:130px;max-width:170px;text-align:center;
+  padding:0;outline:none;font:inherit;color:inherit}
+.cf-btn:hover{border-color:rgba(240,208,122,.5);transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.cf-btn.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 8px 24px rgba(240,208,122,.2)}
+.cf-inner{pointer-events:none}
+.cf-bg{height:70px;display:flex;align-items:center;justify-content:center;font-size:2.2rem}
+.cf-label{padding:.4rem .5rem .6rem;font:.75rem Arial,sans-serif;color:var(--accent)}
+.cf-count{font:.68rem Arial,sans-serif;color:var(--sub);display:block;margin-top:.05rem}
+
+.cf-all{cursor:pointer;border-radius:14px;border:2px solid var(--border);background:var(--card);
+  flex:1;min-width:90px;max-width:110px;padding:.4rem .5rem;outline:none;
+  font:.75rem Arial,sans-serif;color:var(--accent);
+  transition:transform .2s,border-color .2s,box-shadow .2s}
+.cf-all:hover{border-color:rgba(240,208,122,.5);transform:translateY(-3px)}
+.cf-all.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 8px 24px rgba(240,208,122,.2)}
+.cf-all-globe{font-size:2rem;display:block;margin:0 0 .25rem}
+.cf-all-txt{display:block;font:.78rem Arial,sans-serif;color:var(--accent)}
+.cf-all-n{display:block;font:.68rem Arial,sans-serif;color:var(--sub);margin-top:.1rem}
+
+/* continent card bg colours */
+.bg-Africa      {background:linear-gradient(135deg,#1a1000,#2e1a00,#1a2a00)}
+.bg-Asia        {background:linear-gradient(135deg,#001a10,#00100a,#001a22)}
+.bg-NorthAmerica{background:linear-gradient(135deg,#0a001a,#001020,#001a0a)}
+.bg-SouthAmerica{background:linear-gradient(135deg,#001a00,#0a1a00,#001800)}
+.bg-Europe      {background:linear-gradient(135deg,#00001a,#0a000a,#001010)}
+.bg-Oceania     {background:linear-gradient(135deg,#001020,#001a18,#00100a)}
+
+/* ── CONTROLS ── */
+.controls{max-width:1100px;margin:1.5rem auto 0;padding:0 1.5rem}
+.cat-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+.cat-btn{padding:.35rem .9rem;border-radius:20px;border:1px solid var(--border);
+  background:transparent;color:var(--sub);font:.75rem Arial,sans-serif;cursor:pointer;
+  transition:all .2s;outline:none}
+.cat-btn:hover{border-color:rgba(240,208,122,.4);color:var(--text)}
+.cat-btn.active{background:rgba(240,208,122,.15);border-color:rgba(240,208,122,.6);color:var(--accent)}
+.search-row{display:flex;gap:.75rem;align-items:center}
+.search-wrap{flex:1;position:relative}
+.search-wrap input{width:100%;padding:.55rem 1rem .55rem 2.4rem;border-radius:24px;
+  border:1px solid var(--border);background:var(--card);color:var(--text);
+  font:.85rem Arial,sans-serif;outline:none;transition:border-color .2s}
+.search-wrap input:focus{border-color:rgba(240,208,122,.5)}
+.search-wrap input::placeholder{color:var(--sub)}
+.search-icon{position:absolute;left:.8rem;top:50%;transform:translateY(-50%);
+  color:var(--sub);font:.9rem Arial,sans-serif;pointer-events:none}
+.count-label{font:.78rem Arial,sans-serif;color:var(--sub);white-space:nowrap}
+
+/* ── GRID ── */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+  gap:1.2rem;max-width:1100px;margin:1.5rem auto 0;padding:0 1.5rem 4rem}
+
+/* ── CARD ── */
+.card{border-radius:16px;overflow:hidden;cursor:pointer;
+  border:1px solid var(--border);background:var(--card);
+  transition:transform .22s,box-shadow .22s,border-color .22s;
+  animation:fadeUp .35s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.card:hover{transform:translateY(-5px);box-shadow:0 16px 40px rgba(0,0,0,.6);border-color:rgba(240,208,122,.35)}
+.card-photo{height:148px;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;background:#0a1a0a}
+.card-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s}
+.card-photo img.loaded{opacity:1}
+.card-emoji{font-size:3.4rem;transition:opacity .4s;position:relative;z-index:1}
+.card-photo img.loaded~.card-emoji{opacity:0}
+.card-info{padding:.8rem 1rem 1rem}
+.card-name{font-size:1rem;color:var(--text);margin-bottom:.25rem;line-height:1.3}
+.card-sci{font:.7rem Arial,sans-serif;color:var(--sub);font-style:italic;margin-bottom:.5rem}
+.card-badges{display:flex;flex-wrap:wrap;gap:.3rem}
+
+/* category badges */
+.b-mammals    {background:rgba(139,195,74,.18);border:1px solid rgba(139,195,74,.5);color:#b5e27a}
+.b-reptiles   {background:rgba(233,196,106,.15);border:1px solid rgba(233,196,106,.4);color:#ead47e}
+.b-birds      {background:rgba(100,181,246,.15);border:1px solid rgba(100,181,246,.4);color:#8dd4f8}
+.b-fish       {background:rgba(41,182,246,.18);border:1px solid rgba(41,182,246,.4);color:#69d0f4}
+.b-insects    {background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.35);color:#ffd54f}
+.b-amphibians {background:rgba(102,187,106,.15);border:1px solid rgba(102,187,106,.4);color:#80cc84}
+
+/* status badges */
+.b-LC{background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.4);color:#81c784}
+.b-NT{background:rgba(174,213,129,.15);border:1px solid rgba(174,213,129,.4);color:#aed581}
+.b-VU{background:rgba(255,193,7,.15);border:1px solid rgba(255,193,7,.4);color:#ffd54f}
+.b-EN{background:rgba(255,152,0,.15);border:1px solid rgba(255,152,0,.4);color:#ffb74d}
+.b-CR{background:rgba(244,67,54,.15);border:1px solid rgba(244,67,54,.4);color:#ef9a9a}
+.b-DD{background:rgba(158,158,158,.15);border:1px solid rgba(158,158,158,.4);color:#bdbdbd}
+
+/* continent mini-badges */
+.b-cont{background:rgba(240,208,122,.1);border:1px solid rgba(240,208,122,.3);color:var(--accent)}
+
+.badge{display:inline-block;padding:.18rem .5rem;border-radius:10px;font:.65rem Arial,sans-serif;
+  white-space:nowrap;line-height:1.4}
+
+.card-check{display:inline-block;width:16px;height:16px;background:rgba(240,208,122,.2);
+  border:1px solid var(--accent);border-radius:50%;font:.6rem Arial,sans-serif;color:var(--accent);
+  text-align:center;line-height:16px;float:right;margin-top:1px}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:5rem 1.5rem;display:none}
+.empty-icon{font-size:3rem;margin-bottom:1rem}
+.empty h3{color:var(--text);margin-bottom:.5rem}
+.empty p{color:var(--sub);font:.85rem Arial,sans-serif}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(6px);
+  z-index:100;display:none;align-items:center;justify-content:center;padding:1rem}
+.overlay.open{display:flex}
+.modal{background:#0d1a0d;border:1px solid #2a4a2a;border-radius:20px;
+  max-width:620px;width:100%;max-height:92vh;overflow-y:auto;position:relative}
+.modal-close{position:absolute;top:1rem;right:1rem;width:32px;height:32px;
+  border-radius:50%;background:rgba(255,255,255,.08);border:none;color:var(--sub);
+  font:1.1rem Arial,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .2s;z-index:2}
+.modal-close:hover{background:rgba(255,255,255,.16)}
+/* hero + body unified with the continent pages */
+.modal-hero{height:240px;position:relative;overflow:hidden;border-radius:20px 20px 0 0}
+.modal-hero img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;z-index:1;opacity:0;transition:opacity .4s}
+.modal-hero img.loaded{opacity:1}
+.modal-hero .fallback-hero{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:6.5rem;z-index:0}
+.modal-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(13,26,13,.92) 0%,transparent 55%);z-index:2}
+.modal-hero-title{position:absolute;bottom:.9rem;left:1.3rem;right:1.3rem;z-index:3}
+.modal-hero-title h2{font-size:1.6rem;line-height:1.1;margin-bottom:.25rem}
+.modal-hero-title em{color:var(--sub);font:.85rem Arial,sans-serif}
+.modal-body{padding:1.2rem 1.5rem 1.7rem}
+.modal-badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem}
+.modal-desc{font:.88rem/1.72 Georgia,serif;margin-bottom:1rem;color:#ccd8bb}
+.modal-desc.loading{color:var(--sub);font-style:italic}
+.facts-head{font:bold .66rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.45rem}
+.facts-list{list-style:none;margin-bottom:.9rem}
+.facts-list li{display:flex;gap:.5rem;align-items:flex-start;padding:.34rem 0;
+  border-bottom:1px solid var(--border);font:.82rem/1.55 Arial,sans-serif;
+  opacity:0;transform:translateX(-8px);transition:opacity .3s,transform .3s}
+.facts-list li.visible{opacity:1;transform:none}
+.facts-list li:last-child{border-bottom:none}
+.facts-list li::before{content:'▸';color:var(--accent);flex-shrink:0;margin-top:1px}
+.habitat-section{margin-top:.7rem;padding:.75rem;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);border-radius:10px}
+.habitat-title{font:bold .66rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.35rem}
+.habitat-name{font:.8rem Arial,sans-serif;color:var(--sub);margin-bottom:.55rem;display:flex;align-items:center;gap:.35rem}
+.habitat-btns{display:flex;gap:.45rem;flex-wrap:wrap}
+.habitat-btn{padding:.33rem .82rem;border-radius:20px;border:none;cursor:pointer;
+  font:.74rem Arial,sans-serif;font-weight:bold;display:flex;align-items:center;gap:.32rem;transition:transform .15s;text-decoration:none}
+.habitat-btn:hover{transform:translateY(-2px)}
+.hbtn-sat{background:rgba(19,66,26,.8);color:#90d890}
+.hbtn-sv{background:rgba(66,19,24,.8);color:#d89090}
+.modal-cont-link{display:inline-flex;align-items:center;gap:.4rem;width:100%;
+  padding:.7rem 1.1rem;background:rgba(240,208,122,.08);
+  border:1px solid rgba(240,208,122,.3);border-radius:12px;
+  color:var(--accent);text-decoration:none;font:.83rem Arial,sans-serif;
+  transition:background .2s,border-color .2s;margin-top:.4rem}
+.modal-cont-link:hover{background:rgba(240,208,122,.16);border-color:rgba(240,208,122,.5)}
+</style>
+<script src="icons.js"></script>
+<link rel="stylesheet" href="theme.css"/>
+</head>
+<body>
+
+<script src="animals-data.js"></script>
+<script src="animal-details.js"></script>
+
+<header>
+  <a class="back-btn" href="hub.html">← Hub</a>
+  <h1>All Animals</h1>
+  <p class="header-sub">Every species across all six continents</p>
+  <div class="disc-badge" id="disc-badge">Discovered: 0 / 0</div>
+</header>
+
+<div class="cf-section">
+  <div class="cf-title">Quick filter by continent</div>
+  <div class="cf-row" id="cf-row">
+    <button class="cf-all active" id="cf-all" onclick="setCont('')">
+      <span class="cf-all-globe">🌍</span>
+      <span class="cf-all-txt">All</span>
+      <span class="cf-all-n" id="cf-all-n">…</span>
+    </button>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="cat-row">
+    <button class="cat-btn active" data-cat="all" onclick="setCat(this)">All categories</button>
+    <button class="cat-btn" data-cat="mammals" onclick="setCat(this)">🐾 Mammals</button>
+    <button class="cat-btn" data-cat="reptiles" onclick="setCat(this)">🦎 Reptiles</button>
+    <button class="cat-btn" data-cat="birds" onclick="setCat(this)">🐦 Birds</button>
+    <button class="cat-btn" data-cat="fish" onclick="setCat(this)">🐟 Fish</button>
+    <button class="cat-btn" data-cat="insects" onclick="setCat(this)">🦋 Insects</button>
+    <button class="cat-btn" data-cat="amphibians" onclick="setCat(this)">🐸 Amphibians</button>
+  </div>
+  <div class="search-row">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="search" id="search" placeholder="Search all animals…" oninput="setSearch(this.value)"/>
+    </div>
+    <span class="count-label" id="count-label"></span>
+  </div>
+</div>
+
+<div class="cards-grid" id="grid"></div>
+<div class="empty" id="empty">
+  <div class="empty-icon">🔍</div>
+  <h3>No animals found</h3>
+  <p>Try adjusting your filters or search term.</p>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeOverlay()">✕</button>
+    <div class="modal-hero">
+      <span class="fallback-hero" id="modal-emoji"></span>
+      <img id="modal-img" alt="" src=""/>
+      <div class="modal-hero-grad"></div>
+      <div class="modal-hero-title">
+        <h2 id="modal-name"></h2>
+        <em id="modal-sci"></em>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-badges" id="modal-badges"></div>
+      <p class="modal-desc loading" id="modal-desc">Loading…</p>
+      <div id="modal-facts-wrap">
+        <div class="facts-head">Wild Facts</div>
+        <ul class="facts-list" id="modal-facts"></ul>
+      </div>
+      <div class="habitat-section">
+        <div class="habitat-title">Habitat</div>
+        <div class="habitat-name" id="modal-habitat"></div>
+        <div class="habitat-btns" id="modal-maps"></div>
+      </div>
+      <a class="modal-cont-link" id="modal-cont-link" href="#">
+        View full profile on <span id="modal-cont-name"></span> page
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+var activeCont = '';
+var activeCat  = 'all';
+var searchQ    = '';
+var wikiCache  = {};
+var disc = new Set(JSON.parse(localStorage.getItem('ae_all_disc') || '[]'));
+
+var CONTS = [
+  {key:'Africa',        emoji:'🌍', bg:'bg-Africa'},
+  {key:'Asia',          emoji:'🌏', bg:'bg-Asia'},
+  {key:'North America', emoji:'🌎', bg:'bg-NorthAmerica'},
+  {key:'South America', emoji:'🌎', bg:'bg-SouthAmerica'},
+  {key:'Europe',        emoji:'🌍', bg:'bg-Europe'},
+  {key:'Oceania',       emoji:'🌏', bg:'bg-Oceania'},
+];
+
+var STATUS_CODE = {
+  'Least Concern':'LC','Near Threatened':'NT','Vulnerable':'VU',
+  'Endangered':'EN','Critically Endangered':'CR','Data Deficient':'DD'
+};
+
+function buildContFilters() {
+  var row = document.getElementById('cf-row');
+  CONTS.forEach(function(c) {
+    var count = ALL_ANIMALS.filter(function(a){ return a.continent === c.key; }).length;
+    var btn = document.createElement('button');
+    btn.className = 'cf-btn';
+    btn.dataset.cont = c.key;
+    btn.onclick = function(){ setCont(c.key); };
+    btn.innerHTML =
+      '<div class="cf-inner">' +
+        '<div class="cf-bg ' + c.bg + '">' + '<svg class="svg-ic"><use href="#ic-compass"/></svg>' + '</div>' +
+        '<div class="cf-label">' + c.key + '<span class="cf-count">' + count + ' animals</span></div>' +
+      '</div>';
+    row.appendChild(btn);
+  });
+  document.getElementById('cf-all-n').textContent = ALL_ANIMALS.length + ' animals';
+}
+
+function setCont(cont) {
+  activeCont = cont;
+  document.querySelectorAll('.cf-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.cont === cont);
+  });
+  document.getElementById('cf-all').classList.toggle('active', cont === '');
+  renderGrid();
+}
+
+function setCat(btn) {
+  document.querySelectorAll('.cat-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  activeCat = btn.dataset.cat;
+  renderGrid();
+}
+
+function setSearch(val) {
+  searchQ = val;
+  renderGrid();
+}
+
+function filtered() {
+  var q = searchQ.toLowerCase().trim();
+  return ALL_ANIMALS.filter(function(a) {
+    var cm = activeCont === '' || a.continent === activeCont;
+    var tm = activeCat === 'all' || a.category === activeCat;
+    var sm = !q || a.name.toLowerCase().includes(q) ||
+                   a.scientific.toLowerCase().includes(q) ||
+                   a.habitat.toLowerCase().includes(q);
+    return cm && tm && sm;
+  });
+}
+
+function renderGrid() {
+  var list = filtered();
+  var grid  = document.getElementById('grid');
+  var empty = document.getElementById('empty');
+  document.getElementById('count-label').textContent =
+    list.length + ' animal' + (list.length === 1 ? '' : 's');
+  if (!list.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  grid.innerHTML = list.map(function(a, i) {
+    var idx = ALL_ANIMALS.indexOf(a);
+    var sc  = STATUS_CODE[a.status] || 'LC';
+    return '<div class="card" onclick="openModal(' + idx + ')" style="animation-delay:' + (i * 15) + 'ms">' +
+      '<div class="card-photo">' +
+        '<img data-wiki="' + a.wiki + '" alt="' + a.name + '"/>' +
+        '<span class="card-emoji">' + catIcon(a.category) + '</span>' +
+      '</div>' +
+      '<div class="card-info">' +
+        (disc.has(idx) ? '<span class="card-check"><svg class="svg-ic"><use href="#ic-check"/></svg></span>' : '') +
+        '<div class="card-name">' + a.name + '</div>' +
+        '<div class="card-sci">' + a.scientific + '</div>' +
+        '<div class="card-badges">' +
+          '<span class="badge b-' + a.category + '">' + a.category + '</span>' +
+          '<span class="badge b-cont">' + a.continent + '</span>' +
+          '<span class="badge b-' + sc + '">' + a.status + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  var imgs = grid.querySelectorAll('img[data-wiki]');
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { loadImg(e.target); obs.unobserve(e.target); }
+      });
+    }, {rootMargin: '200px'});
+    imgs.forEach(function(img){ obs.observe(img); });
+  } else {
+    imgs.forEach(function(img){ loadImg(img); });
+  }
+}
+
+function loadImg(img) {
+  var wiki = img.dataset.wiki;
+  if (!wiki) return;
+  if (wikiCache[wiki] !== undefined) {
+    if (wikiCache[wiki]) applyImg(img, wikiCache[wiki]);
+    return;
+  }
+  fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(wiki))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var url = (d.originalimage && d.originalimage.source) ||
+                (d.thumbnail && d.thumbnail.source) || null;
+      wikiCache[wiki] = url;
+      if (url) applyImg(img, url);
+    })
+    .catch(function(){ wikiCache[wiki] = null; });
+}
+
+function applyImg(img, url) {
+  img.src = url;
+  img.onload = function(){ img.classList.add('loaded'); };
+}
+
+function openModal(idx) {
+  var a = ALL_ANIMALS[idx];
+  disc.add(idx);
+  localStorage.setItem('ae_all_disc', JSON.stringify(Array.from(disc)));
+  updateDiscBadge();
+
+  var sc  = STATUS_CODE[a.status] || 'LC';
+  var det = (window.ANIMAL_DETAILS && ANIMAL_DETAILS[a.name]) || null;
+
+  // hero
+  var mImg = document.getElementById('modal-img');
+  mImg.classList.remove('loaded'); mImg.src = '';
+  document.getElementById('modal-emoji').innerHTML = catIcon(a.category);
+  document.getElementById('modal-name').textContent = a.name;
+  document.getElementById('modal-sci').textContent  = a.scientific;
+  document.getElementById('modal-badges').innerHTML =
+    '<span class="badge b-' + a.category + '">' + a.category + '</span>' +
+    '<span class="s-badge s-' + sc + '">' + a.status + '</span>';
+
+  // description + curated facts (same layout/fonts as the continent pages)
+  var desc      = document.getElementById('modal-desc');
+  var factsWrap = document.getElementById('modal-facts-wrap');
+  var factsUl   = document.getElementById('modal-facts');
+
+  function setImg(url){ if(!url) return; wikiCache[a.wiki]=url; mImg.src=url; mImg.onload=function(){ mImg.classList.add('loaded'); }; }
+  function wikiImg(d){ return (d.originalimage && d.originalimage.source) || (d.thumbnail && d.thumbnail.source) || null; }
+
+  if (det) {
+    desc.textContent = det.desc; desc.className = 'modal-desc';
+    factsUl.innerHTML = det.facts.map(function(f){ return '<li>' + f + '</li>'; }).join('');
+    factsWrap.style.display = '';
+    revealFacts();
+    if (wikiCache[a.wiki]) setImg(wikiCache[a.wiki]);
+    else fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(a.wiki))
+      .then(function(r){ return r.json(); }).then(function(d){ setImg(wikiImg(d)); }).catch(function(){});
+  } else {
+    // a few animals use name variants without curated text → fall back to Wikipedia summary
+    desc.textContent = 'Loading…'; desc.className = 'modal-desc loading';
+    factsWrap.style.display = 'none'; factsUl.innerHTML = '';
+    if (wikiCache[a.wiki]) setImg(wikiCache[a.wiki]);
+    fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(a.wiki))
+      .then(function(r){ return r.json(); })
+      .then(function(d){ setImg(wikiImg(d)); desc.textContent = d.extract || 'No description available.'; desc.className = 'modal-desc'; })
+      .catch(function(){ desc.textContent = 'Description unavailable — check your connection.'; desc.className = 'modal-desc'; });
+  }
+
+  // habitat
+  document.getElementById('modal-habitat').innerHTML =
+    '<svg class="svg-ic"><use href="#ic-pin"/></svg> ' + ((det && det.habitat) ? det.habitat : a.habitat);
+  document.getElementById('modal-maps').innerHTML =
+    '<a class="habitat-btn hbtn-sat" target="_blank" href="https://maps.google.com/maps?q=' + a.lat + ',' + a.lon + '&t=k"><svg class="svg-ic"><use href="#ic-satellite"/></svg> Google Maps Satellite</a>' +
+    '<a class="habitat-btn hbtn-sv"  target="_blank" href="https://maps.google.com/maps?layer=c&cbll=' + a.lat + ',' + a.lon + '"><svg class="svg-ic"><use href="#ic-camera"/></svg> Google Street View</a>';
+
+  document.getElementById('modal-cont-name').textContent = a.continent;
+  document.getElementById('modal-cont-link').href = a.continentFile;
+
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function revealFacts() {
+  var lis = document.querySelectorAll('#modal-facts li');
+  lis.forEach(function(li){ li.classList.remove('visible'); });
+  setTimeout(function(){ lis.forEach(function(li, i){ setTimeout(function(){ li.classList.add('visible'); }, i * 70); }); }, 120);
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('overlay')) closeOverlay();
+}
+function closeOverlay() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeOverlay(); });
+
+function updateDiscBadge() {
+  document.getElementById('disc-badge').textContent =
+    'Discovered: ' + disc.size + ' / ' + ALL_ANIMALS.length;
+}
+
+buildContFilters();
+renderGrid();
+updateDiscBadge();
+</script>
+<script src="paw-cursor.js" defer></script>
+</body>
+</html>

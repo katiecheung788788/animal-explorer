@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Animal Explorer — Africa</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#090f09;--card:#121e12;--border:#1e341e;--text:#ddeacc;--sub:#6a8a5a;--accent:#f0d07a;
+  --mammal:#2e6e20;--reptile:#7a3a10;--bird:#164880;--fish:#086060;--insect:#706000;--amphibian:#4a1878}
+body{background:var(--bg);color:var(--text);font-family:Georgia,serif;min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;
+  padding:.9rem 1.4rem;background:#0d160d;border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:500}
+.back-btn{padding:.32rem .85rem;background:transparent;border:1px solid var(--border);
+  color:var(--sub);font:.78rem Arial,sans-serif;border-radius:20px;cursor:pointer;transition:all .15s}
+.back-btn:hover{border-color:var(--accent);color:var(--accent)}
+.logo{font-size:1.2rem;color:var(--accent)}
+.disc-badge{padding:.3rem .75rem;border:1px solid rgba(240,208,122,.25);border-radius:20px;
+  font:.78rem Arial,sans-serif;color:var(--accent);cursor:pointer;background:rgba(240,208,122,.06);transition:background .2s}
+.disc-badge:hover{background:rgba(240,208,122,.12)}
+.disc-panel{display:none;padding:.6rem 1.4rem;background:#0a130a;border-bottom:1px solid var(--border)}
+.disc-bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:.3rem}
+.disc-bar{height:100%;background:linear-gradient(90deg,#3a7820,var(--accent));border-radius:3px;transition:width .5s}
+.disc-panel p{font:.73rem Arial,sans-serif;color:var(--sub)}
+.disc-panel p span{color:var(--accent)}
+.ticker-wrap{display:flex;align-items:center;gap:.5rem;font:italic .76rem/1.3 Arial,sans-serif;color:var(--sub);width:300px;flex-shrink:0}
+.ticker-label{color:var(--accent);font-style:normal;font-weight:bold;white-space:nowrap}
+#ticker-track{overflow:hidden;flex:1;min-width:0;position:relative;height:1.3em;cursor:default}
+#ticker{position:absolute;white-space:nowrap;will-change:transform;opacity:0}
+.controls{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+  padding:.65rem 1.4rem;background:#0d160d;border-bottom:1px solid var(--border)}
+.search-wrap{position:relative;flex:1;min-width:150px;max-width:240px}
+.search-wrap svg{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--sub);fill:none;pointer-events:none}
+.search-input{width:100%;padding:.36rem .75rem .36rem 1.9rem;background:rgba(255,255,255,.04);
+  border:1px solid var(--border);border-radius:20px;color:var(--text);font:.8rem Arial,sans-serif;outline:none;transition:border-color .2s}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--sub)}
+.pill{padding:.32rem .8rem;border-radius:20px;border:1px solid var(--border);background:transparent;
+  color:var(--sub);font:.76rem Arial,sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap}
+.pill:hover{border-color:var(--accent);color:var(--accent)}
+.pill.active[data-cat=all]        {background:var(--accent);border-color:var(--accent);color:#111;font-weight:bold}
+.pill.active[data-cat=mammals]    {background:var(--mammal);border-color:var(--mammal);color:#fff;font-weight:bold}
+.pill.active[data-cat=reptiles]   {background:var(--reptile);border-color:var(--reptile);color:#fff;font-weight:bold}
+.pill.active[data-cat=birds]      {background:var(--bird);border-color:var(--bird);color:#fff;font-weight:bold}
+.pill.active[data-cat=fish]       {background:var(--fish);border-color:var(--fish);color:#fff;font-weight:bold}
+.pill.active[data-cat=insects]    {background:var(--insect);border-color:var(--insect);color:#fff;font-weight:bold}
+.pill.active[data-cat=amphibians] {background:var(--amphibian);border-color:var(--amphibian);color:#fff;font-weight:bold}
+.surprise-btn{padding:.36rem .95rem;border:none;border-radius:20px;background:linear-gradient(135deg,#3a1880,#7030d0);
+  color:#fff;font:.76rem Arial,sans-serif;cursor:pointer;transition:transform .15s,box-shadow .15s;white-space:nowrap}
+.surprise-btn:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(112,48,208,.45)}
+.map-section{border-bottom:2px solid var(--border)}
+#world-map{height:380px;width:100%}
+.map-hint{text-align:center;padding:.3rem;color:var(--sub);font:1rem Arial,sans-serif;
+  background:#0b140b;letter-spacing:.3px;border-bottom:1px solid var(--border)}
+.leaflet-container{background:#060e1e}
+.animal-map-marker{width:34px;height:34px;border-radius:50%;background:rgba(9,15,9,.9);
+  border:2px solid rgba(240,208,122,.5);display:flex;align-items:center;justify-content:center;
+  font-size:17px;cursor:pointer;transition:transform .15s;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+.animal-map-marker:hover{transform:scale(1.25);border-color:var(--accent)}
+.animal-map-marker.discovered{border-color:var(--accent);background:rgba(240,208,122,.15)}
+.results-section{padding:1.2rem 1.4rem}
+.results-header{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:.9rem}
+.results-header h2{font-size:1.1rem;color:var(--accent)}
+#results-count{color:var(--sub);font:.78rem Arial,sans-serif}
+#reset-btn{margin-left:auto;padding:.26rem .7rem;background:transparent;border:1px solid var(--border);
+  color:var(--sub);font:.74rem Arial,sans-serif;border-radius:20px;cursor:pointer;transition:all .15s}
+#reset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.9rem}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.card{border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid var(--border);
+  background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.4);animation:slideUp .3s ease backwards;
+  transition:box-shadow .3s,border-color .25s;position:relative}
+.card:hover{box-shadow:0 10px 28px rgba(0,0,0,.6);border-color:rgba(240,208,122,.35)}
+.card-photo{height:155px;position:relative;overflow:hidden}
+.card-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:4.5rem;z-index:1;transition:opacity .3s}
+.card-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;transition:transform .5s,opacity .3s}
+.card:hover .card-photo img{transform:scale(1.07)}
+.card-overlay{position:absolute;inset:0 0 auto 0;height:155px;background:rgba(5,10,5,.88);
+  backdrop-filter:blur(2px);display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:.9rem;text-align:center;z-index:3;opacity:0;transition:opacity .2s}
+.card:hover .card-overlay{opacity:1}
+.card-overlay p{font:.78rem/1.5 Arial,sans-serif;color:#dde;margin-bottom:.4rem}
+.card-overlay small{font:.68rem Arial,sans-serif;color:var(--accent)}
+.card-info{padding:.6rem .85rem .7rem;position:relative}
+.card-name{font-size:.88rem;margin-bottom:.28rem}
+.card-row{display:flex;align-items:center;justify-content:space-between;gap:.4rem}
+.card-region{color:var(--sub);font:.68rem Arial,sans-serif}
+.card-check{position:absolute;top:.5rem;right:.7rem;width:17px;height:17px;border-radius:50%;
+  background:var(--accent);color:#111;font:.7rem Arial,sans-serif;font-weight:bold;
+  display:flex;align-items:center;justify-content:center}
+.badge{display:inline-block;padding:.08rem .42rem;border-radius:10px;font:bold .64rem/1.4 Arial,sans-serif;text-transform:uppercase;letter-spacing:.3px}
+.b-mammals   {background:rgba(46,110,32,.28);color:#70d450;border:1px solid rgba(46,110,32,.45)}
+.b-reptiles  {background:rgba(122,58,16,.28);color:#e08040;border:1px solid rgba(122,58,16,.45)}
+.b-birds     {background:rgba(22,72,128,.28);color:#58b0f0;border:1px solid rgba(22,72,128,.45)}
+.b-fish      {background:rgba(8,96,96,.28);  color:#30d8d8;border:1px solid rgba(8,96,96,.45)}
+.b-insects   {background:rgba(112,96,0,.28); color:#e0cc30;border:1px solid rgba(112,96,0,.45)}
+.b-amphibians{background:rgba(74,24,120,.28);color:#c070f0;border:1px solid rgba(74,24,120,.45)}
+.s-badge{display:inline-block;padding:.08rem .42rem;border-radius:10px;font:bold .64rem/1.4 Arial,sans-serif;text-transform:uppercase;letter-spacing:.3px}
+.s-LC{background:rgba(32,110,32,.2);color:#60d060;border:1px solid rgba(32,110,32,.4)}
+.s-NT{background:rgba(190,170,0,.15);color:#d8c840;border:1px solid rgba(190,170,0,.3)}
+.s-VU{background:rgba(190,110,0,.15);color:#e09030;border:1px solid rgba(190,110,0,.3)}
+.s-EN{background:rgba(190,55,0,.15);color:#e05828;border:1px solid rgba(190,55,0,.3)}
+.s-CR{background:rgba(190,0,0,.15);color:#e02828;border:1px solid rgba(190,0,0,.3)}
+.bg-mammals   {background:linear-gradient(135deg,#0e220a,#183818)}
+.bg-reptiles  {background:linear-gradient(135deg,#200e04,#381808)}
+.bg-birds     {background:linear-gradient(135deg,#060e28,#0e1e44)}
+.bg-fish      {background:linear-gradient(135deg,#021414,#063030)}
+.bg-insects   {background:linear-gradient(135deg,#141000,#282002)}
+.bg-amphibians{background:linear-gradient(135deg,#0e041c,#1c0838)}
+.empty-state{text-align:center;padding:3rem 2rem;color:var(--sub);font:1rem Arial,sans-serif}
+.empty-state .big{font-size:3rem;margin-bottom:.6rem}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;
+  justify-content:center;z-index:1000;padding:1rem;opacity:0;pointer-events:none;transition:opacity .22s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:#111c11;border:1px solid #2a422a;border-radius:16px;max-width:600px;width:100%;
+  max-height:90vh;overflow-y:auto;position:relative;transform:scale(.94) translateY(10px);transition:transform .22s}
+.modal-overlay.open .modal{transform:scale(1) translateY(0)}
+.modal-close{position:absolute;top:.8rem;right:.8rem;background:rgba(255,255,255,.1);border:none;
+  color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font:.92rem Arial,sans-serif;
+  line-height:30px;text-align:center;transition:background .15s;z-index:2}
+.modal-close:hover{background:rgba(255,255,255,.22)}
+.modal-hero{height:230px;position:relative;overflow:hidden;border-radius:16px 16px 0 0}
+.modal-hero img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;z-index:1;opacity:0;transition:opacity .3s}
+.modal-hero img.loaded{opacity:1}
+.modal-hero .fallback-hero{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:6.5rem;z-index:0}
+.modal-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(17,28,17,.9) 0%,transparent 55%);z-index:2}
+.modal-hero-title{position:absolute;bottom:.9rem;left:1.3rem;z-index:3}
+.modal-hero-title h2{font-size:1.6rem;line-height:1.1;margin-bottom:.25rem}
+.modal-hero-title em{color:var(--sub);font:.85rem Arial,sans-serif}
+.modal-body{padding:1.1rem 1.4rem 1.6rem}
+.modal-badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem}
+.modal-desc{font:.88rem/1.72 Georgia,serif;margin-bottom:1rem;color:#ccd8bb}
+.facts-head{font:bold .66rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.45rem}
+.facts-list{list-style:none;margin-bottom:.9rem}
+.facts-list li{display:flex;gap:.5rem;align-items:flex-start;padding:.34rem 0;
+  border-bottom:1px solid var(--border);font:.82rem/1.55 Arial,sans-serif;
+  opacity:0;transform:translateX(-8px);transition:opacity .3s,transform .3s}
+.facts-list li.visible{opacity:1;transform:none}
+.facts-list li:last-child{border-bottom:none}
+.facts-list li::before{content:'▸';color:var(--accent);flex-shrink:0;margin-top:1px}
+.habitat-section{margin-top:.7rem;padding:.75rem;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);border-radius:10px}
+.habitat-title{font:bold .66rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.35rem}
+.habitat-name{font:.8rem Arial,sans-serif;color:var(--sub);margin-bottom:.55rem}
+.habitat-btns{display:flex;gap:.45rem;flex-wrap:wrap}
+.habitat-btn{padding:.33rem .82rem;border-radius:20px;border:none;cursor:pointer;
+  font:.74rem Arial,sans-serif;font-weight:bold;display:flex;align-items:center;gap:.32rem;transition:transform .15s;text-decoration:none}
+.habitat-btn:hover{transform:translateY(-2px)}
+.hbtn-sat{background:rgba(19,66,26,.8);color:#90d890}
+.hbtn-sv{background:rgba(66,19,24,.8);color:#d89090}
+.modal-nav{display:flex;justify-content:space-between;margin-top:1rem;padding-top:.7rem;border-top:1px solid var(--border)}
+.modal-nav button{padding:.38rem .95rem;background:transparent;border:1px solid var(--border);
+  color:var(--sub);font:.78rem Arial,sans-serif;border-radius:20px;cursor:pointer;transition:all .15s}
+.modal-nav button:hover{border-color:var(--accent);color:var(--accent)}
+@media(max-width:560px){.cards-grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:.6rem}
+  .card-photo,.card-overlay{height:125px}#world-map{height:240px}}
+</style>
+<script src="icons.js"></script>
+<link rel="stylesheet" href="theme.css"/>
+</head>
+<body>
+<header>
+  <a class="back-btn" href="hub.html">← All Continents</a>
+  <div class="logo">🌍 Africa — Wildlife Explorer</div>
+  <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
+    <div class="ticker-wrap"><span class="ticker-label">Fact:</span><div id="ticker-track"><span id="ticker"></span></div></div>
+    <div class="disc-badge" onclick="toggleDisc()"><span id="disc-count">0/<span id="disc-total">60</span></span> explored</div>
+  </div>
+</header>
+<div class="disc-panel" id="disc-panel">
+  <div class="disc-bar-wrap"><div class="disc-bar" id="disc-bar" style="width:0%"></div></div>
+  <p>Explored <span id="disc-text">0</span> of <span id="disc-total2">60</span> African animals</p>
+</div>
+<div class="controls">
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22" stroke-linecap="round"/></svg>
+    <input class="search-input" id="search-input" type="text" placeholder="Search animals…" autocomplete="off"/>
+  </div>
+  <button class="pill active" data-cat="all">All</button>
+  <button class="pill" data-cat="mammals">🐘 Mammals</button>
+  <button class="pill" data-cat="reptiles">🐊 Reptiles</button>
+  <button class="pill" data-cat="birds">🦅 Birds</button>
+  <button class="pill" data-cat="fish">🐟 Fish</button>
+  <button class="pill" data-cat="insects">🪲 Insects</button>
+  <button class="pill" data-cat="amphibians">🐸 Amphibians</button>
+  <button class="surprise-btn" onclick="surpriseMe()">🎲 Surprise!</button>
+</div>
+<div class="map-section">
+  <div id="world-map"></div>
+</div>
+<p class="map-hint">🛰 Satellite imagery · Click animal pins to explore</p>
+<section class="results-section">
+  <div class="results-header">
+    <h2 id="results-title">All African Animals</h2>
+    <span id="results-count"></span>
+    <button id="reset-btn" style="display:none" onclick="resetCat()">✕ Clear filter</button>
+  </div>
+  <div class="cards-grid" id="cards-grid"></div>
+  <div class="empty-state" id="empty-state" style="display:none"><div class="big">🔭</div>No animals found.</div>
+</section>
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" role="dialog">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const ANIMALS=[
+{name:'African Bush Elephant',scientific:'Loxodonta africana',emoji:'🐘',category:'mammals',status:'Vulnerable',wiki:'African_bush_elephant',lat:-2.64,lon:37.26,habitat:'Amboseli National Park, Kenya',
+ desc:'The largest land animal on Earth, living in matriarch-led herds with deep family bonds, extraordinary memory, and complex emotional lives shared across generations.',
+ facts:['Largest land animal — bulls reach 6 tonnes and 3.3 m at the shoulder','Trunks contain over 40,000 muscles and can lift 350 kg or pick up a single blade of grass','Communicate via infrasound too low for human ears — heard by other elephants kilometres away','Grieve their dead, revisiting the bones of family members years later','Drink up to 200 litres of water and consume 300 kg of vegetation per day']},
+
+{name:'African Forest Elephant',scientific:'Loxodonta cyclotis',emoji:'🐘',category:'mammals',status:'Critically Endangered',wiki:'African_forest_elephant',lat:0.50,lon:18.00,habitat:'Congo Basin, DRC',
+ desc:'Smaller and darker than the bush elephant, the forest elephant is a separate species and a critical "forest gardener" — dispersing the seeds of over 100 tree species through the Congo Basin.',
+ facts:['Recognised as a distinct species from the bush elephant only in 2001','Smaller and rounder ears, and straighter, downward-pointing tusks adapted for forest terrain','Seeds in their dung germinate 3× more successfully than seeds from other dispersers','Population has declined by over 86% in just 31 years','Their paths through the forest create "elephant highways" used by other wildlife']},
+
+{name:'Lion',scientific:'Panthera leo',emoji:'🦁',category:'mammals',status:'Vulnerable',wiki:'Lion',lat:-1.50,lon:35.10,habitat:'Masai Mara, Kenya',
+ desc:'The only cats that live in cooperative social groups called prides, lions rule the African savannah with females doing most of the hunting and males defending territory.',
+ facts:['Only cats that naturally live in social groups — prides of up to 40 individuals','A roar can be heard 8 km away in still air','Females perform 85–90% of all hunting for the pride','Sleep up to 20 hours a day to conserve energy in the heat','African lion populations have declined 43% in 21 years — now fewer than 25,000 remain']},
+
+{name:'Cheetah',scientific:'Acinonyx jubatus',emoji:'🐆',category:'mammals',status:'Vulnerable',wiki:'Cheetah',lat:-2.33,lon:34.83,habitat:'Serengeti, Tanzania',
+ desc:'The fastest land animal reaches 112 km/h in 3 seconds, sacrificing the retractable claws and brute strength of other big cats entirely for speed.',
+ facts:['Fastest land animal — bursts of 112 km/h sustained over about 400 metres','Non-retractable claws grip the ground like running spikes for traction','Cannot roar — chirps, purrs, and yelps instead; a distinctive meowing call carries far','Only big cat active primarily in daylight, avoiding competition with nocturnal hunters','Loses up to 50% of kills to stronger scavengers such as lions and hyenas']},
+
+{name:'Leopard',scientific:'Panthera pardus',emoji:'🐆',category:'mammals',status:'Vulnerable',wiki:'Leopard',lat:-24.0,lon:31.5,habitat:'Kruger National Park, South Africa',
+ desc:'The most adaptable of all the big cats, the leopard is also the strongest relative to body size — famous for hauling prey heavier than itself into trees to keep it from competitors.',
+ facts:['Strongest climber among big cats — hauls prey up to 3× its own weight into tree branches','Most widespread big cat — range spans sub-Saharan Africa to the Russian Far East','A leopard\'s rosette pattern is unique — no two individuals are identical','Melanistic (black) leopards are simply normal leopards with excess melanin pigment','Thrives in urban areas — leopards have been filmed hunting rats in Mumbai at night']},
+
+{name:'Giraffe',scientific:'Giraffa camelopardalis',emoji:'🦒',category:'mammals',status:'Vulnerable',wiki:'Giraffe',lat:-2.71,lon:37.35,habitat:'Amboseli National Park, Kenya',
+ desc:'The world\'s tallest animal uses its extraordinary neck to dominate treetop browsing, but also swings it as a devastating weapon in "necking" battles between males.',
+ facts:['Tallest land animal on Earth — up to 5.7 m tall','Heart weighs 11 kg and beats 170 times per minute to pump blood to the brain','A single kick from a hind leg can decapitate a lion','Sleeps only 20–30 minutes a day in brief standing naps','No two giraffes share the same coat pattern — as unique as a human fingerprint']},
+
+{name:'Common Hippopotamus',scientific:'Hippopotamus amphibius',emoji:'🦛',category:'mammals',status:'Vulnerable',wiki:'Hippopotamus',lat:4.00,lon:32.50,habitat:'Victoria Nile, Uganda',
+ desc:'Despite their plant-eating diet, hippos are Africa\'s most dangerous large land animal — fiercely territorial and capable of running faster than most humans.',
+ facts:['Responsible for more human fatalities than lions, leopards, or any other large African mammal','Can run at 30 km/h on land despite weighing up to 3,000 kg','Skin secretes a natural sunscreen and antibiotic known colloquially as "blood sweat"','Spend up to 16 hours daily submerged to thermoregulate and protect their skin','Closest living relatives are cetaceans — whales and dolphins, not pigs']},
+
+{name:'White Rhinoceros',scientific:'Ceratotherium simum',emoji:'🦏',category:'mammals',status:'Near Threatened',wiki:'White_rhinoceros',lat:-28.0,lon:32.0,habitat:'Hluhluwe-iMfolozi Park, KwaZulu-Natal',
+ desc:'The world\'s largest land animal after elephants, the white rhino was rescued from near-extinction in the early 1900s in one of conservation\'s earliest success stories.',
+ facts:['Second-largest land animal after the elephant — males can exceed 2,300 kg','Name derives from Afrikaans "wijd" (wide) referring to its square lip, not its colour','Reduced to fewer than 50 in 1895; now over 17,000 thanks to intense conservation','Horns are made of compressed keratin — the same material as human fingernails','Live in small groups called "crashes"; males are highly territorial']},
+
+{name:'Black Rhinoceros',scientific:'Diceros bicornis',emoji:'🦏',category:'mammals',status:'Critically Endangered',wiki:'Black_rhinoceros',lat:-3.5,lon:36.0,habitat:'Ngorongoro Crater, Tanzania',
+ desc:'The most endangered of the five rhino species, the black rhino has a hooked upper lip for grasping leaves and branches — distinct from the wide, grazing lip of the white rhino.',
+ facts:['Critically Endangered — declined 96% between 1970 and 1992 due to poaching','Hooked prehensile upper lip allows it to browse leaves and twigs, unlike white rhinos','Solitary and highly aggressive — will charge with little provocation','One horn can grow to 130 cm in length; record is 150 cm','Despite their reputation, more shy than white rhinos; poor eyesight but excellent hearing']},
+
+{name:'Mountain Gorilla',scientific:'Gorilla beringei beringei',emoji:'🦍',category:'mammals',status:'Endangered',wiki:'Mountain_gorilla',lat:-1.48,lon:29.52,habitat:'Virunga Mountains, Rwanda',
+ desc:'One of our closest living relatives, mountain gorillas inhabit misty volcanic highlands in tight family groups led by a dominant silverback — and their numbers are actually increasing.',
+ facts:['Share 98.3% of human DNA — closer to us than to chimpanzees in some analyses','A silverback\'s chest-beat can be heard from over 1 km away','Wild population has grown from 620 to over 1,000 thanks to conservation efforts','Build a fresh nest of branches and leaves every single night to sleep in','Eat up to 34 kg of vegetation per day — leaves, shoots, roots, and fruit']},
+
+{name:'Common Chimpanzee',scientific:'Pan troglodytes',emoji:'🐒',category:'mammals',status:'Endangered',wiki:'Chimpanzee',lat:-4.50,lon:15.50,habitat:'Nouabalé-Ndoki, Congo',
+ desc:'Our closest living relative makes and uses tools, wages war, mourns the dead, and has been observed deliberately hunting other primates in organised raiding parties.',
+ facts:['Our closest living relative — sharing 98.7% of DNA with modern humans','Use grass stems, twigs, and stones as tools — learned and passed between generations','Communities wage deliberate territorial wars against neighbouring groups','Have demonstrated theory of mind — understanding what others know and don\'t know','Infants are dependent on their mothers for up to 7 years — one of the longest of any mammal']},
+
+{name:'African Wild Dog',scientific:'Lycaon pictus',emoji:'🐕',category:'mammals',status:'Endangered',wiki:'African_wild_dog',lat:-18.0,lon:24.0,habitat:'Okavango Delta, Botswana',
+ desc:'One of Africa\'s most efficient predators — and among its most endangered — the African wild dog succeeds in 80% of hunts by relying on teamwork and extraordinary endurance.',
+ facts:['80% hunt success rate — highest of any large African predator (lions: ~30%)','Each dog has a unique coat pattern — no two are alike','Pups are fed first — the whole pack regurgitates food for young and injured members','Can run at 66 km/h and sustain a chase for over an hour covering 50 km','Fewer than 6,600 remain in the wild across 39 countries']},
+
+{name:'Spotted Hyena',scientific:'Crocuta crocuta',emoji:'🦬',category:'mammals',status:'Least Concern',wiki:'Spotted_hyena',lat:-3.5,lon:36.5,habitat:'Ngorongoro Conservation Area, Tanzania',
+ desc:'Africa\'s most common large carnivore is also one of its most misunderstood — spotted hyenas are complex, matriarchal, and more active hunters than scavengers.',
+ facts:['More often a hunter than a scavenger — up to 95% of food is actively hunted','Females are larger than males and dominate all social interactions','Clans can number up to 80 individuals led by a dominant female','Bite force among the most powerful of any land carnivore — can crush large bones easily','Cubs are born with eyes open and teeth already erupted, fighting immediately for dominance']},
+
+{name:'Meerkat',scientific:'Suricata suricatta',emoji:'🦦',category:'mammals',status:'Least Concern',wiki:'Meerkat',lat:-26.5,lon:20.5,habitat:'Kalahari Desert, Botswana',
+ desc:'Desert dwellers with a finely tuned sentinel system — meerkats take turns as lookouts and use distinct alarm calls for aerial predators versus ground threats.',
+ facts:['Use over 30 distinct vocalisations with specific meanings for different threat types','Immune to many venoms including scorpion stings, allowing them to eat scorpions safely','Sentinels bark continuously to signal safety — silence means danger','Sunbathe every morning standing upright, warming their dark belly skin','Pups are taught to handle prey safely by adults who bring progressively more dangerous prey']},
+
+{name:'Honey Badger',scientific:'Mellivora capensis',emoji:'🦡',category:'mammals',status:'Least Concern',wiki:'Honey_badger',lat:-20.0,lon:23.0,habitat:'Okavango, Botswana',
+ desc:'Pound for pound one of the toughest animals on Earth — the honey badger will fearlessly attack animals many times its size and is resistant to some of the most powerful venoms.',
+ facts:['Recognised by the Guinness World Records as the most fearless animal on Earth','Skin is so thick and loose that it can turn completely around inside its skin to bite an attacker','Resistant to many snake venoms — can survive bites from black mambas and puff adders','Will raid beehives for honey and larvae, seemingly unbothered by thousands of stings','Has been documented digging up buried human corpses and breaking into locked enclosures']},
+
+{name:'Mandrill',scientific:'Mandrillus sphinx',emoji:'🐒',category:'mammals',status:'Vulnerable',wiki:'Mandrill',lat:0.5,lon:12.0,habitat:'Lopé National Park, Gabon',
+ desc:'The world\'s largest monkey is also the most colourful — the male\'s vivid blue and red face is directly linked to testosterone levels and social dominance.',
+ facts:['World\'s largest monkey — males weigh up to 35 kg','Most colourful mammal on Earth — blue-red facial skin intensifies with excitement','Dominant males have brighter colours; subordinates are noticeably duller','Live in the largest groups of any non-human primate — "hordes" of up to 800 individuals','Bright buttock coloration guides others through dense forest undergrowth']},
+
+{name:'Serval',scientific:'Leptailurus serval',emoji:'🐱',category:'mammals',status:'Least Concern',wiki:'Serval',lat:-1.3,lon:36.8,habitat:'Nairobi National Park, Kenya',
+ desc:'An elegant, long-legged cat with the largest ears relative to head size of any cat — enabling it to hunt entirely by sound, pouncing with devastating accuracy on prey hidden in tall grass.',
+ facts:['Largest ears-to-head ratio of any cat — detect prey underground or under snow','70% hunting success rate — higher than any other African cat','Leap 3 m vertically from a standing position to pluck birds from the air','Hunt entirely by hearing — can locate prey under 20 cm of grass without seeing it','Will eat over 90 different prey species including insects, birds, rodents, and small antelopes']},
+
+{name:'Aardvark',scientific:'Orycteropus afer',emoji:'🐷',category:'mammals',status:'Least Concern',wiki:'Aardvark',lat:-24.0,lon:24.0,habitat:'Kgalagadi Transfrontier Park, Botswana',
+ desc:'Africa\'s most unusual-looking mammal has no close living relatives — it is the sole surviving species of an entirely unique mammalian order, and its burrows house entire ecosystems.',
+ facts:['The sole surviving member of order Tubulidentata — no close living relatives','A 30 cm long sticky tongue captures up to 50,000 ants and termites every night','Can dig a 1-metre burrow in just 5 minutes with powerful claws','Abandoned aardvark burrows are used by warthogs, jackals, porcupines, and owls','Name means "earth pig" in Afrikaans; listed first in most English dictionaries']},
+
+{name:'Ground Pangolin',scientific:'Smutsia temminckii',emoji:'🐾',category:'mammals',status:'Vulnerable',wiki:'Ground_pangolin',lat:4.0,lon:12.0,habitat:'Cameroon',
+ desc:'Africa\'s most heavily trafficked mammal — the pangolin\'s armour of overlapping keratin scales has made it the target of the world\'s largest illegal wildlife trade.',
+ facts:['World\'s most trafficked mammal — over 1 million poached in the last decade','Scales are made of compressed keratin — the same material as human nails','Curls into a perfect ball when threatened, protecting its soft underside','A sticky tongue extends up to 40 cm to extract insects from deep burrows','Cannot be kept in captivity — almost always dies within weeks; internal clock disrupted']},
+
+{name:'Cape Buffalo',scientific:'Syncerus caffer',emoji:'🐂',category:'mammals',status:'Near Threatened',wiki:'African_buffalo',lat:-2.0,lon:34.5,habitat:'Serengeti National Park, Tanzania',
+ desc:'Africa\'s "Black Death" — a herd animal that is anything but docile. Cape buffaloes are responsible for more hunter deaths in Africa than any other large game animal.',
+ facts:['Nicknamed "Black Death" by big game hunters — responsible for more deaths than most predators','A wounded buffalo will circle back and ambush its pursuer','Herds vote on movement direction — cows vote by pointing their muzzles, majority rules','Thick fused horn bases form a shield called a "boss" — impenetrable to lion claws','Old males expelled from herds are called "dagga boys" and are particularly dangerous']},
+
+{name:'Plains Zebra',scientific:'Equus quagga',emoji:'🦓',category:'mammals',status:'Near Threatened',wiki:'Plains_zebra',lat:-2.5,lon:34.9,habitat:'Serengeti, Tanzania',
+ desc:'No two zebras share the same stripe pattern — and scientists now understand stripes are not primarily for camouflage but to confuse the temperature-sensitive eyes of biting insects.',
+ facts:['No two zebras have identical stripe patterns — uniquely individual like a human fingerprint','Stripes confuse tsetse flies and other biting insects whose eyes are sensitive to motion','Foals can stand and run within minutes of birth','Sleep standing up, relying on complex leg-locking tendons — rarely lie down','Herds are the preferred prey of lions; stay in tight groups for protection']},
+
+{name:'Common Warthog',scientific:'Phacochoerus africanus',emoji:'🐗',category:'mammals',status:'Least Concern',wiki:'Common_warthog',lat:-2.5,lon:37.5,habitat:'Tsavo East National Park, Kenya',
+ desc:'The warthog\'s distinctive facial warts — which are actually protective pads — and its habit of kneeling to graze are two of Africa\'s most charming wildlife sights.',
+ facts:['Warts are actually protective skin pads used during fights with rival males','Reverse into burrows tail-first so their tusks face outward toward any approaching predator','Kneel on padded knees to graze — the only pig to do so habitually','Can go without water for several months during the dry season','Despite their appearance, warthogs are excellent sprinters — up to 48 km/h']},
+
+{name:'Nile Crocodile',scientific:'Crocodylus niloticus',emoji:'🐊',category:'reptiles',status:'Least Concern',wiki:'Nile_crocodile',lat:24.09,lon:32.90,habitat:'Nile River, Egypt',
+ desc:'Africa\'s largest predator, virtually unchanged for 200 million years, holds the record for the most powerful bite force ever measured in a living animal.',
+ facts:['Strongest bite force ever recorded — 22,000 Newtons (compare: human bite at 1,300 N)','Can hold their breath for up to 2 hours while lying motionless in ambush','Females carry hatchlings to water in their mouths — among the most attentive reptile mothers','Virtually unchanged for over 200 million years — a true evolutionary success','Can go months without eating after consuming a large meal']},
+
+{name:'Black Mamba',scientific:'Dendroaspis polylepis',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'Black_mamba',lat:-13.5,lon:32.5,habitat:'Luangwa Valley, Zambia',
+ desc:'The fastest and most feared snake in Africa can move at 20 km/h on the ground, striking up to 12 times in a single attack and delivering enough venom to kill 20 adults.',
+ facts:['Fastest snake in Africa — sustained speeds of 20 km/h over short distances','Named for the black inside of its mouth, not its body colour (which is grey-brown)','Delivers 12 or more bites per attack, each containing 400 mg of potent neurotoxin','Before antivenom, bite mortality approached 100% within 7–15 hours','Highly territorial and will aggressively defend its lair']},
+
+{name:'Puff Adder',scientific:'Bitis arietans',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'Puff_adder',lat:-29.0,lon:26.0,habitat:'Free State, South Africa',
+ desc:'Responsible for more snakebite fatalities in Africa than any other species — not because it\'s the most venomous, but because it\'s slow, cryptically camouflaged, and encountered everywhere.',
+ facts:['Responsible for the most snakebite fatalities in Africa due to its abundance and camouflage','Ambush predator — lies motionless for days or weeks waiting for prey','Fastest strike of any African snake — strikes faster than the human eye can follow','Produces large quantities of cytotoxic venom causing extensive tissue destruction','Can move sideways rapidly despite its sluggish reputation']},
+
+{name:'Gaboon Viper',scientific:'Bitis gabonica',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'Gaboon_viper',lat:0.5,lon:25.5,habitat:'Congo Rainforest, DRC',
+ desc:'The world\'s heaviest venomous snake also holds the record for the longest fangs of any serpent — up to 5 cm — and one of the highest venom yields per bite.',
+ facts:['World\'s heaviest venomous snake — adults commonly exceed 10 kg','Longest fangs of any snake — up to 5 cm and folded back when mouth is closed','Single bite can deliver over 5 ml of venom — the highest yield per bite of any snake','Camouflage so perfect that humans have accidentally stepped on them without noticing','Prehensile tail grips branches in trees — surprising for such a heavy snake']},
+
+{name:'Boomslang',scientific:'Dispholidus typus',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'Boomslang',lat:-29.5,lon:30.0,habitat:'KwaZulu-Natal, South Africa',
+ desc:'A rear-fanged tree snake whose haemotoxic venom was dismissed as harmless until 1957, when a celebrated herpetologist — Karl Schmidt — died 24 hours after a bite.',
+ facts:['Has the most potent venom of any rear-fanged (opisthoglyphous) snake','Venom disrupts blood clotting — victims bleed from every orifice over 24 hours','A herpetologist, Karl P. Schmidt, dismissed his 1957 bite as minor — he died next day','Extraordinary binocular vision — can track moving prey with both eyes simultaneously','Eyes are massive relative to head size — largest eye-to-head ratio of any snake']},
+
+{name:'African Rock Python',scientific:'Python sebae',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'African_rock_python',lat:0.0,lon:30.0,habitat:'Queen Elizabeth NP, Uganda',
+ desc:'Africa\'s largest snake and one of the world\'s largest reptiles — documented killing and swallowing prey as large as crocodiles, warthogs, and adult impala.',
+ facts:['Africa\'s largest snake — females can exceed 6 m and 100 kg','Documented prey includes full-grown crocodiles, warthogs, and impalas','Kills by constriction — tightens grip each time prey exhales until it cannot breathe','Females coil around eggs and shiver muscular contractions to generate heat for incubation','Can consume prey 1.5× its own body diameter, expanding jaw and skull bones as needed']},
+
+{name:'Nile Monitor',scientific:'Varanus niloticus',emoji:'🦎',category:'reptiles',status:'Least Concern',wiki:'Nile_monitor',lat:4.0,lon:32.0,habitat:'Nile River, South Sudan',
+ desc:'Africa\'s largest lizard is an intelligent, semi-aquatic predator with forked tongue chemoreception rivalling that of snakes — and has become a devastating invasive species in Florida.',
+ facts:['Africa\'s largest lizard — adults regularly exceed 1.5 m, some reaching 2.4 m','Forked tongue samples airborne chemicals — effectively "smells" in stereo','Expert swimmer; can hold its breath for extended periods underwater','Has become an invasive species in Florida, where it devastates native wildlife','Can crack open eggs, turtle shells, and thick-shelled beetles with powerful jaws']},
+
+{name:'Panther Chameleon',scientific:'Furcifer pardalis',emoji:'🦎',category:'reptiles',status:'Least Concern',wiki:'Panther_chameleon',lat:-15.0,lon:48.5,habitat:'Nosy Be, Madagascar',
+ desc:'The most dramatically colourful reptile on Earth — panther chameleon males flash vivid reds, blues, and greens not for camouflage but to communicate mood and dominance to rivals.',
+ facts:['Colours are for communication, not camouflage — each region of Madagascar has distinct colour morphs','Eyes move completely independently — can look in two directions simultaneously','Tongue fires out in 0.07 seconds — faster than any human reflex can track','Zygodactyl feet grip branches like tongs — two toes forward, three back','Each clutch of hatchlings hatches simultaneously — triggered by temperature cycles']},
+
+{name:'Green Mamba',scientific:'Dendroaspis angusticeps',emoji:'🐍',category:'reptiles',status:'Least Concern',wiki:'Eastern_green_mamba',lat:-4.5,lon:38.5,habitat:'Coastal Forests, Tanzania',
+ desc:'Bright emerald-green and lightning-fast, the green mamba lives almost entirely in trees along the East African coast, where its colour provides near-perfect camouflage in leafy canopies.',
+ facts:['Venom is highly neurotoxic — faster acting than most other African snake venoms','Spends almost its entire life in trees and is rarely encountered on the ground','Brilliant emerald green is genuine camouflage among coastal forest leaves','Smaller and more slender than the black mamba but extremely fast in canopy branches','Lays eggs — unlike the live-bearing black mamba']},
+
+{name:'Nile Softshell Turtle',scientific:'Trionyx triunguis',emoji:'🐢',category:'reptiles',status:'Vulnerable',wiki:'African_softshell_turtle',lat:23.0,lon:32.5,habitat:'Upper Nile, Sudan',
+ desc:'The Nile softshell turtle has a leathery, flexible shell rather than the rigid bone-and-scute armour of most turtles, enabling it to breathe through its skin and stay submerged indefinitely.',
+ facts:['Leathery shell allows oxygen absorption directly through the skin underwater','Can remain submerged indefinitely without surfacing to breathe air','One of the largest freshwater turtles in Africa — shell up to 95 cm long','Can extend its long neck snorkel-like to breathe just below the surface','Thrives in rivers, lakes, and even coastal brackish water']},
+
+{name:'Common Ostrich',scientific:'Struthio camelus',emoji:'🦩',category:'birds',status:'Least Concern',wiki:'Common_ostrich',lat:11.00,lon:15.00,habitat:'Sahel Savanna, Chad',
+ desc:'The world\'s largest bird cannot fly but is the fastest two-legged animal alive — capable of sustained sprints of 70 km/h and extraordinary kicks that can kill a lion.',
+ facts:['Largest and heaviest bird — up to 156 kg; tallest at up to 2.7 m','Fastest running bird: sustained 70 km/h; recorded maximum burst of 97 km/h','Each eye is 5 cm in diameter — larger than the brain','A single egg weighs as much as 24 chicken eggs and can support a person\'s weight','Ostriches do NOT bury their heads in sand — the myth came from rotational egg-turning motions']},
+
+{name:'Secretarybird',scientific:'Sagittarius serpentarius',emoji:'🦅',category:'birds',status:'Vulnerable',wiki:'Secretarybird',lat:-26.0,lon:28.0,habitat:'Highveld, South Africa',
+ desc:'The only bird of prey that hunts primarily on foot — the secretarybird stamps venomous snakes to death with a strike 5× faster than the eye can follow.',
+ facts:['Kills prey by stamping with a force of 195 N — 5× faster than a human eye can process','Hunts exclusively on foot, walking up to 30 km per day across open grassland','Strike speed has been measured at 15 milliseconds — comparable to a rattlesnake strike','Named for the quill-like crest feathers resembling 18th-century secretaries carrying quill pens','Can fly and does so to reach roosting trees — but prefers to walk and run']},
+
+{name:'African Fish Eagle',scientific:'Haliaeetus vocifer',emoji:'🦅',category:'birds',status:'Least Concern',wiki:'African_fish_eagle',lat:-1.5,lon:34.0,habitat:'Lake Victoria, Kenya/Uganda',
+ desc:'The call of the African fish eagle is the quintessential sound of the African wilderness — and has been used as the basis for national emblems of Zambia, Zimbabwe, and South Sudan.',
+ facts:['National bird or emblem of four African countries','Distinctive two-note call is the most recognised bird sound in Africa','Snatches fish from the surface in a single swooping pass with taloned feet','Pairs mate for life and return to the same nest every year, adding to it until it weighs tonnes','Can carry fish weighing over 2 kg in flight']},
+
+{name:'Lesser Flamingo',scientific:'Phoeniconaias minor',emoji:'🦩',category:'birds',status:'Near Threatened',wiki:'Lesser_flamingo',lat:-2.0,lon:36.1,habitat:'Lake Nakuru, Kenya',
+ desc:'The world\'s most numerous flamingo species forms the largest single concentrations of birds on Earth — pink carpets of up to 2 million individuals on East Africa\'s alkaline soda lakes.',
+ facts:['Up to 2 million gather on Lake Natron, Tanzania — the largest bird gathering on Earth','Feed on cyanobacteria (spirulina) which give their plumage its vivid pink colour','Can filter 60 filter-feeds per second through specialised lamellae in the bill','Breed on caustic soda flats so toxic that chick legs develop hard salt "booties"','Can fly at 60 km/h and travel 500–600 km between feeding sites in a single night']},
+
+{name:'Shoebill',scientific:'Balaeniceps rex',emoji:'🐦',category:'birds',status:'Vulnerable',wiki:'Shoebill',lat:3.5,lon:32.0,habitat:'Murchison Falls, Uganda',
+ desc:'One of Africa\'s most prehistoric-looking birds, the shoebill stands motionless for hours in swamps before striking with one of the fastest and most powerful bill-snaps of any bird.',
+ facts:['Bill is one of the largest and most powerful of any living bird — up to 23 cm long','Can stand motionless for over 30 minutes before an ambush strike','Strike on large prey — including lungfish and baby crocodiles — lasts just 0.5 seconds','Will eat young crocodiles, water monitors, and even small hippos','Long considered closest relative of storks, now reclassified near pelicans through DNA']},
+
+{name:'Crowned Eagle',scientific:'Stephanoaetus coronatus',emoji:'🦅',category:'birds',status:'Vulnerable',wiki:'African_crowned_eagle',lat:-26.5,lon:32.5,habitat:'Kruger National Park, South Africa',
+ desc:'Africa\'s most powerful eagle regularly kills prey many times its own body weight — it is the only bird capable of killing adult duiker, bushbuck, and even small baboons.',
+ facts:['Africa\'s most powerful eagle — talons exert up to 530 kg of crushing pressure','Regularly kills prey 7× its own body weight, including small primates and young duiker','Pair bonds last for life; the same nest is used for decades, growing enormous','Chick-rearing from egg to independence takes nearly 500 days — one of the longest of any bird','A Crowned Eagle feather was found in the skull of a Australopithecus fossil — it preyed on our ancestors']},
+
+{name:'Kori Bustard',scientific:'Ardeotis kori',emoji:'🦢',category:'birds',status:'Near Threatened',wiki:'Kori_bustard',lat:-3.0,lon:36.0,habitat:'Ngorongoro Conservation Area, Tanzania',
+ desc:'The heaviest flying bird in Africa and one of the heaviest in the world, the kori bustard prefers to walk rather than fly, relying on cryptic plumage for camouflage in open grasslands.',
+ facts:['Heaviest flying bird in Africa — males up to 19 kg','Prefers walking to flying — will run away from danger rather than take to the air','Males inflate neck pouches and fan tail plumes skyward in an extraordinary courtship display','Drinks by sucking — one of the few birds that can suck water up without tilting its head back','Secretarybirds and Bateleur eagles follow them to catch insects stirred up as they walk']},
+
+{name:'African Penguin',scientific:'Spheniscus demersus',emoji:'🐧',category:'birds',status:'Endangered',wiki:'African_penguin',lat:-33.9,lon:18.4,habitat:'Boulders Beach, Cape Town',
+ desc:'The only penguin to breed on the African continent lives in colonies on South African and Namibian beaches, vocalising with a distinctly donkey-like bray that earned it the nickname "jackass penguin".',
+ facts:['Only penguin species native to Africa; breeds on beaches in Cape Town colony','Call sounds so much like a donkey that they are commonly called "jackass penguins"','Swim up to 70 km per day hunting anchovies and sardines','Population has declined by 70% since 2000 due to overfishing collapsing prey stocks','Moult annually — must fast for 21 days during the moult as they cannot enter water']},
+
+{name:'Marabou Stork',scientific:'Leptoptilos crumenifer',emoji:'🦢',category:'birds',status:'Least Concern',wiki:'Marabou_stork',lat:-1.5,lon:36.8,habitat:'Nairobi, Kenya',
+ desc:'Nicknamed "the undertaker bird" for its hunched posture and funereal appearance, the marabou stork is one of Africa\'s most efficient scavengers — its bald head allows it to plunge inside carcasses without fouling feathers.',
+ facts:['Bald head is an adaptation — allows feeding inside carcasses without soiling feathers','Wingspan of 3.7 m — among the widest of any living bird','Inflatable pink throat pouch used in courtship displays is unconnected to the respiratory system','Remarkably adapted to city life — thrives in Nairobi, Kampala, and Addis Ababa','Urinate on their own legs — the evaporation cools them in extreme heat (urohidrosis)']},
+
+{name:'Lilac-breasted Roller',scientific:'Coracias caudatus',emoji:'🐦',category:'birds',status:'Least Concern',wiki:'Lilac-breasted_roller',lat:-2.5,lon:34.0,habitat:'Serengeti, Tanzania',
+ desc:'Africa\'s most colourful bird, wearing eight distinct colours in a single plumage, and famous for the dramatic barrel-rolling aerial display that gives it its name.',
+ facts:['Eight distinct colours in a single bird — blue, purple, lilac, green, teal, brown, white, black','Males perform dramatic rolling and diving aerial displays to impress females','National bird of Kenya and Botswana','Often perch on telephone poles and tree tops scanning for large insects and lizards','Nest in natural cavities in trees and will aggressively evict other species to claim them']},
+
+{name:'African Grey Parrot',scientific:'Psittacus erithacus',emoji:'🦜',category:'birds',status:'Endangered',wiki:'African_grey_parrot',lat:4.0,lon:20.0,habitat:'Congo Basin, DRC',
+ desc:'Considered the most cognitively gifted bird in the world — the African grey parrot can understand and use human language with genuine conceptual understanding, not just mimicry.',
+ facts:['Alex, a grey parrot studied by Dr. Irene Pepperberg, had a working vocabulary of over 150 words with genuine comprehension','Demonstrated the ability to understand concepts of zero, same, and different','Wild greys live in huge roosts of thousands and are vital seed dispersers in the Congo Basin','Population crashed by 99% in Ghana due to trapping for the pet trade','Can live for 60+ years — longer than most other parrots']},
+
+{name:'Southern Ground Hornbill',scientific:'Bucorvus leadbeateri',emoji:'🐦',category:'birds',status:'Vulnerable',wiki:'Southern_ground_hornbill',lat:-24.0,lon:31.5,habitat:'Kruger National Park, South Africa',
+ desc:'Africa\'s largest hornbill is also one of the slowest-breeding birds on Earth — a breeding pair typically raises just one chick every nine years, making conservation critically challenging.',
+ facts:['One of the slowest-breeding birds: typically one chick per breeding pair every 9 years','Groups cooperatively defend territories of up to 250 km²','Produce a deep booming call just before dawn that carries for 3 km','Will kill and eat extremely venomous snakes including cobras and mambas','Considered sacred in many southern African cultures — killing one was once punishable by death']},
+
+{name:'White-backed Vulture',scientific:'Gyps africanus',emoji:'🦅',category:'birds',status:'Critically Endangered',wiki:'White-backed_vulture',lat:-2.0,lon:35.0,habitat:'Serengeti Ecosystem, Tanzania',
+ desc:'Africa\'s most numerous vulture is the continent\'s primary corpse-disposal service — but populations have crashed catastrophically due to poisoned carcasses laid out to kill lions and elephants for their parts.',
+ facts:['Can locate carcasses from 50 km by watching the descent of other birds','Stomach acid so strong (pH nearly 0) it neutralises anthrax and botulinum toxins','Groups of 200+ will pick a carcass to bones within 30 minutes','Endangered by poachers who poison carcasses to hide elephant killings from aerial survey','Bodies absorb and concentrate environmental poisons — poisoned meat killed 400+ in a single incident in 2019']},
+
+{name:'Superb Starling',scientific:'Lamprotornis superbus',emoji:'🐦',category:'birds',status:'Least Concern',wiki:'Superb_starling',lat:-2.0,lon:37.0,habitat:'Amboseli National Park, Kenya',
+ desc:'One of East Africa\'s most brilliantly coloured birds — iridescent turquoise-green above and orange below — the superb starling is also a co-operative breeder with complex family helpers.',
+ facts:['Plumage shines iridescent turquoise, green, and orange — one of Africa\'s most striking birds','Lives in cooperative groups where non-breeding helpers assist raising chicks','Call is a complex series of churring and whistling phrases','Highly confiding near human habitation — will take scraps from safari camp tables','Starlings are closely related to mynahs — both in family Sturnidae']},
+
+{name:'Goliath Tigerfish',scientific:'Hydrocynus goliath',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Goliath_tigerfish',lat:-4.0,lon:25.0,habitat:'Congo River, DRC',
+ desc:'Africa\'s most ferocious freshwater fish, with 32 interlocking razor-sharp teeth the size of a man\'s fingers — capable of cutting a large fish in half with a single bite.',
+ facts:['32 interlocking teeth, each up to 4 cm long — visible even when the mouth is closed','Can cut fish in half with a single bite and attack prey as large as itself','Hunts by detecting vibrations with a lateral line system sensitive enough to locate prey in murky water','Holds the world record as the only freshwater fish documented to attack humans with fatal intent','Grows to 50 kg and 1.5 m — the largest member of the tigerfish family']},
+
+{name:'African Lungfish',scientific:'Protopterus annectens',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'West_African_lungfish',lat:8.0,lon:4.0,habitat:'West African River Floodplains',
+ desc:'A living fossil virtually unchanged since the Devonian period — the African lungfish can breathe air and survives drought by burrowing into mud and forming a mucus cocoon for up to three years.',
+ facts:['Breathes air using primitive lungs as well as gills — a true bridge between fish and land vertebrates','Survives drought by entering aestivation in a sealed mud cocoon for up to 3 years','Can survive completely without water as long as it remains in its sealed mucus cocoon','Living fossil — essentially unchanged for 400 million years','Fins contain a pattern of bones directly homologous to the tetrapod limb bones']},
+
+{name:'Nile Tilapia',scientific:'Oreochromis niloticus',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Nile_tilapia',lat:2.0,lon:32.5,habitat:'Lake Victoria, East Africa',
+ desc:'One of the most ecologically and economically important fish in the world — farmed more widely than almost any other fish and a critical protein source for hundreds of millions of people.',
+ facts:['Second most farmed fish in the world — over 4 million tonnes produced annually','Lake Victoria\'s tilapia fishery was devastated by the introduced Nile perch in the 1980s','Remarkable mouthbrooder — females incubate eggs and fry inside the buccal cavity','Can thrive in fresh, brackish, and even mildly saline water','An escaped aquaculture species, it has become invasive on multiple continents']},
+
+{name:'Electric Catfish',scientific:'Malapterurus electricus',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Electric_catfish',lat:14.0,lon:32.0,habitat:'Nile River, Sudan',
+ desc:'The electric catfish surrounds its entire body with a layer of electric-generating tissue — one of only a handful of fish globally that can discharge electricity offensively to stun prey.',
+ facts:['Generates discharges of up to 350 volts to stun prey and deter predators','Electric organ surrounds the body beneath the skin — the only fish with this arrangement','Ancient Egyptians used these fish as crude pain relievers — pressing them against aching joints','Completely blind in darkness — relies entirely on electroreception to navigate and hunt','Can discharge hundreds of times consecutively without apparent fatigue']},
+
+{name:'Nile Perch',scientific:'Lates niloticus',emoji:'🐟',category:'fish',status:'Least Concern',wiki:'Nile_perch',lat:-1.0,lon:33.0,habitat:'Lake Victoria, East Africa',
+ desc:'Introduced to Lake Victoria in the 1950s, the Nile perch triggered one of the largest documented mass extinctions of vertebrates in recorded history — driving over 200 endemic cichlid species to extinction.',
+ facts:['Introduction to Lake Victoria caused the extinction of over 200 endemic fish species','One of the largest freshwater fish — documented at 200 kg and 1.8 m','Adults consume prey up to half their own body size','Was deliberately introduced despite scientific warnings about the ecological consequences','Now one of East Africa\'s most economically important export fish despite its ecological legacy']},
+
+{name:'Bull Shark',scientific:'Carcharhinus leucas',emoji:'🦈',category:'fish',status:'Vulnerable',wiki:'Bull_shark',lat:-18.0,lon:35.5,habitat:'Zambezi River Mouth, Mozambique',
+ desc:'The most dangerous shark to humans overall — the bull shark has the extraordinary ability to regulate its kidneys to swim hundreds of kilometres upriver in fully fresh water, appearing far inland.',
+ facts:['Only shark capable of fully entering freshwater — documented 4,000 km up the Amazon River','Responsible for more unprovoked attacks on humans than any other shark species','Kidneys actively adjust salt concentration to survive both seawater and river water','Have been caught in rivers in South Africa, Illinois, and as far as Cincinnati, Ohio','Have the highest testosterone levels of any animal on Earth, including humans']},
+
+{name:'Goliath Beetle',scientific:'Goliathus goliatus',emoji:'🪲',category:'insects',status:'Least Concern',wiki:'Goliath_beetle',lat:1.00,lon:15.00,habitat:'Congo Rainforest, DRC',
+ desc:'One of the heaviest insects alive — found in Central African rainforests where males joust in trees with Y-shaped horns over mating rights.',
+ facts:['One of the world\'s heaviest insects — adults reach 100 g, larvae up to 150 g','Males use Y-shaped horns on the head to wrestle rivals off branches','Despite their bulk, are powerful fliers using enlarged forewings as airfoils','Feed on rotting wood as larvae; adults consume tree sap, fruit, and dung','Ancient Egyptians kept them as pets, tethering them to strings']},
+
+{name:'African Driver Ant',scientific:'Dorylus wilverthi',emoji:'🐜',category:'insects',status:'Least Concern',wiki:'Driver_ant',lat:-4.0,lon:21.5,habitat:'Congo Forest, DRC',
+ desc:'The largest ant colonies on Earth — driver ant swarms of 20 million workers can travel 20 metres an hour, consuming every invertebrate and small vertebrate in their path.',
+ facts:['Colonies of up to 20 million workers — the largest ant colonies on Earth','The queen can lay 3 to 4 million eggs per month','Swarms systematically clear every insect, spider, and small vertebrate from their path','Workers form living bridges and bivouacs using their own interlinked bodies','Locals deliberately use swarms to surgically clean homes of insects and rodents']},
+
+{name:'African Honeybee',scientific:'Apis mellifera scutellata',emoji:'🐝',category:'insects',status:'Least Concern',wiki:'Africanized_bee',lat:-12.0,lon:28.0,habitat:'Zambia',
+ desc:'The so-called "killer bee" is simply the African subspecies of the common honeybee — far more aggressive in colony defence than European varieties and capable of chasing perceived threats for over a kilometre.',
+ facts:['Will chase threats for over 1.5 km — European honeybees stop chasing after 50 m','Alarm pheromone release triggers mass defensive response from the entire colony','Identical in venom toxicity to European honeybees — danger is from the volume of stings','Accidentally hybridised with escaped Brazilian lab bees to create "Africanized honey bees" now spreading in the Americas','Honey badgers and honeyguide birds deliberately guide humans to their hives for the wax and larvae']},
+
+{name:'Dung Beetle',scientific:'Scarabaeus sacer',emoji:'🪲',category:'insects',status:'Least Concern',wiki:'Dung_beetle',lat:-3.5,lon:30.0,habitat:'Tanzanian Savanna',
+ desc:'The only animal known to navigate by the Milky Way — dung beetles roll their dung balls in a straight line at night using the galactic core as a compass.',
+ facts:['Only animal known to navigate by the light of the Milky Way — confirmed in 2013 experiments','Can roll dung balls 10× their own body weight in a straight line across rough terrain','Male dung beetles are among the strongest animals on Earth relative to body size','Sacred to ancient Egyptians — the scarab was a symbol of the sun god Ra','Ecosystem service value calculated in the billions — nutrient cycling and parasite reduction in cattle']},
+
+{name:'African Bullfrog',scientific:'Pyxicephalus adspersus',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'African_bullfrog',lat:-20.00,lon:23.00,habitat:'Kalahari, Botswana',
+ desc:'One of Africa\'s largest frogs, where males are unusually much larger than females — a rare reversal of amphibian norms — and fathers stand guard against predators including lions.',
+ facts:['One of Africa\'s largest frogs — males reach 2.3 kg and 23 cm','Males are 3× heavier than females — extreme sex-role reversal uncommon in frogs','Survive dry seasons buried underground in a sealed mucus cocoon — not emerging for months','Fathers guard tadpoles fiercely — recorded chasing lions and humans away from pools','Will eat virtually anything including rodents, lizards, other frogs, and small birds']},
+
+{name:'Goliath Frog',scientific:'Conraua goliath',emoji:'🐸',category:'amphibians',status:'Endangered',wiki:'Goliath_frog',lat:3.5,lon:10.5,habitat:'Rainforest Rivers, Cameroon',
+ desc:'The world\'s largest frog reaches 32 cm in body length and 3.25 kg — yet has no vocal sac and makes no mating call, finding mates entirely by sound of the river.',
+ facts:['World\'s largest frog — body length to 32 cm; weight to 3.25 kg','Has no vocal sac — cannot call to attract mates as most frogs do','Found only in fast-flowing rapids in Cameroon and Equatorial Guinea','Tadpoles feed exclusively on a single species of aquatic plant found only in their native rivers','Endangered by habitat loss and hunting for food — considered a delicacy in local markets']},
+
+{name:'African Clawed Frog',scientific:'Xenopus laevis',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'African_clawed_frog',lat:-30.0,lon:25.0,habitat:'Eastern Cape, South Africa',
+ desc:'A fully aquatic frog with clawed hind feet that was used worldwide as the first living pregnancy test — and has spread globally as an invasive species carrying a fungal disease that has devastated amphibian populations worldwide.',
+ facts:['Used worldwide as the first biological pregnancy test from the 1930s–60s — injected with human urine, a pregnant woman\'s hormones cause the frog to lay eggs within 12 hours','Spread globally from laboratory escapes and releases — now invasive on 6 continents','Carries the chytrid fungus Batrachochytrium dendrobatidis — responsible for 90+ amphibian extinctions','Has no tongue — uses forelimbs to push food into its mouth','Can regenerate amputated limbs including the spinal cord; a key model organism in developmental biology']},
+
+{name:'African Reed Frog',scientific:'Hyperolius viridiflavus',emoji:'🐸',category:'amphibians',status:'Least Concern',wiki:'African_reed_frog',lat:-3.0,lon:40.0,habitat:'Kenya Coast',
+ desc:'One of Africa\'s most beautiful and variable frogs — reed frogs can shift from male to female mid-life, and some populations change their entire skin colour in response to sunlight intensity.',
+ facts:['Can spontaneously change from male to female mid-life in response to population sex ratio','Some individuals change colour from brown to vivid green depending on light exposure','Skin absorbs water directly — never needs to drink from open water','One of over 100 species in the genus Hyperolius — Africa\'s most diverse frog group','Night chorus of reed frogs is one of the iconic sounds of African wetlands']
+}
+];
+
+const SC={'Least Concern':'LC','Near Threatened':'NT','Vulnerable':'VU','Endangered':'EN','Critically Endangered':'CR'};
+let activeCat='all', searchQ='', currentList=[], currentModal=null;
+const disc=new Set(JSON.parse(localStorage.getItem('ae_africa_disc')||'[]'));
+const wiki={};
+let map=null, markers=[];
+
+async function getWikiImg(title){
+  if(wiki[title]!==undefined)return wiki[title];
+  try{const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    const d=await r.json();const u=d.originalimage?.source||d.thumbnail?.source||null;
+    wiki[title]=u;return u;}catch{wiki[title]=null;return null;}
+}
+
+function initMap(){
+  map=L.map('world-map',{center:[0,20],zoom:3,minZoom:2,maxZoom:18});
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {attribution:'Tiles © Esri',maxZoom:18}).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    {attribution:'',maxZoom:18,opacity:0.55}).addTo(map);
+  updateMarkers();
+  map.on('zoomend moveend',updateMarkers);
+}
+
+function updateMarkers(){
+  markers.forEach(m=>map.removeLayer(m));markers=[];
+  if(map.getZoom()<3)return;
+  filtered().forEach((a,i)=>{
+    const el=L.divIcon({html:`<div class="animal-map-marker${disc.has(ANIMALS.indexOf(a))?' discovered':''}" title="${a.name}">${catIcon(a.category)}</div>`,className:'',iconSize:[34,34],iconAnchor:[17,17]});
+    const m=L.marker([a.lat,a.lon],{icon:el}).addTo(map);
+    m.on('click',()=>openModal(ANIMALS.indexOf(a)));
+    markers.push(m);
+  });
+}
+
+function filtered(){
+  const q=searchQ.toLowerCase().trim();
+  return ANIMALS.filter(a=>{
+    const cm=activeCat==='all'||a.category===activeCat;
+    const sm=!q||a.name.toLowerCase().includes(q)||a.scientific.toLowerCase().includes(q)||
+              a.desc.toLowerCase().includes(q)||a.facts.some(f=>f.toLowerCase().includes(q));
+    return cm&&sm;
+  });
+}
+
+function renderCards(){
+  const grid=document.getElementById('cards-grid');
+  const empty=document.getElementById('empty-state');
+  const list=filtered();currentList=list;
+  document.getElementById('results-count').textContent=list.length+' animal'+(list.length===1?'':'s');
+  document.getElementById('results-title').textContent=activeCat==='all'?'All African Animals':'African '+cap(activeCat);
+  document.getElementById('reset-btn').style.display=activeCat==='all'?'none':'inline-block';
+  if(!list.length){grid.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  grid.innerHTML=list.map((a,i)=>{
+    const idx=ANIMALS.indexOf(a);
+    return `<div class="card" onclick="openModal(${idx})" style="animation-delay:${i*25}ms">
+      <div class="card-photo bg-${a.category}">
+        <span class="card-fallback">${catIcon(a.category)}</span>
+        <img data-wiki="${a.wiki}" alt="${a.name}" loading="lazy"/>
+      </div>
+      <div class="card-overlay"><p>${a.facts[0].substring(0,90)}…</p><small>TAP TO EXPLORE <svg class="svg-ic"><use href="#ic-arrow-right"/></svg></small></div>
+      <div class="card-info">
+        ${disc.has(idx)?'<span class="card-check"><svg class="svg-ic"><use href="#ic-check"/></svg></span>':''}
+        <div class="card-name">${a.name}</div>
+        <div class="card-row"><span class="badge b-${a.category}">${a.category}</span><span class="card-region">${catIcon(a.category)}</span></div>
+      </div></div>`;
+  }).join('');
+  grid.querySelectorAll('img[data-wiki]').forEach(img=>{
+    getWikiImg(img.dataset.wiki).then(u=>{if(u){img.src=u;img.onload=()=>{img.classList.add('loaded');img.previousElementSibling.style.opacity=0};}});
+  });
+  grid.querySelectorAll('.card').forEach(c=>{
+    c.addEventListener('mousemove',e=>{const r=c.getBoundingClientRect();
+      const x=((e.clientX-r.left)/r.width-.5)*12;const y=((e.clientY-r.top)/r.height-.5)*-12;
+      c.style.transform=`perspective(700px) rotateX(${y}deg) rotateY(${x}deg) translateY(-4px)`;c.style.transition='none';});
+    c.addEventListener('mouseleave',()=>{c.style.transform='';c.style.transition='transform .4s ease';});
+  });
+}
+
+function openModal(idx){
+  const a=ANIMALS[idx];const sc=SC[a.status]||'LC';
+  const inL=currentList.indexOf(a);
+  const pr=inL>0?ANIMALS.indexOf(currentList[inL-1]):null;
+  const nx=inL<currentList.length-1?ANIMALS.indexOf(currentList[inL+1]):null;
+  const sat=`https://maps.google.com/maps?q=${a.lat},${a.lon}&t=k`;
+  const sv=`https://maps.google.com/maps?q=${a.lat},${a.lon}&layer=c&cbll=${a.lat},${a.lon}`;
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-hero bg-${a.category}">
+      <div class="fallback-hero">${catIcon(a.category)}</div>
+      <img data-wiki="${a.wiki}" alt="${a.name}"/>
+      <div class="modal-hero-grad"></div>
+      <div class="modal-hero-title"><h2>${a.name}</h2><em>${a.scientific}</em></div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-badges">
+        <span class="badge b-${a.category}">${a.category}</span>
+        <span class="s-badge s-${sc}">${a.status}</span>
+      </div>
+      <p class="modal-desc">${a.desc}</p>
+      <div class="facts-head">Wild Facts</div>
+      <ul class="facts-list" id="facts-list">${a.facts.map(f=>`<li>${f}</li>`).join('')}</ul>
+      <div class="habitat-section">
+        <div class="habitat-title">Habitat</div>
+        <div class="habitat-name"><svg class="svg-ic"><use href="#ic-pin"/></svg> ${a.habitat}</div>
+        <div class="habitat-btns">
+          <a href="${sat}" target="_blank" class="habitat-btn hbtn-sat"><svg class="svg-ic"><use href="#ic-satellite"/></svg> Google Maps Satellite</a>
+          <a href="${sv}" target="_blank" class="habitat-btn hbtn-sv"><svg class="svg-ic"><use href="#ic-camera"/></svg> Google Street View</a>
+        </div>
+      </div>
+      <div class="modal-nav">
+        <button onclick="event.stopPropagation();openModal(${pr})" ${pr===null?'disabled style="opacity:.3"':''}><svg class="svg-ic"><use href="#ic-arrow-left"/></svg> Prev</button>
+        <button onclick="event.stopPropagation();openModal(${nx})" ${nx===null?'disabled style="opacity:.3"':''}>Next <svg class="svg-ic"><use href="#ic-arrow-right"/></svg></button>
+      </div>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  currentModal=idx;
+  disc.add(idx);
+  localStorage.setItem('ae_africa_disc',JSON.stringify([...disc]));
+  updateDiscUI();
+  const img=document.querySelector('#modal-content .modal-hero img');
+  getWikiImg(a.wiki).then(u=>{if(u&&img){img.src=u;img.onload=()=>{img.classList.add('loaded');}}});
+  setTimeout(()=>{document.querySelectorAll('#facts-list li').forEach((li,i)=>{setTimeout(()=>li.classList.add('visible'),i*70);});},180);
+}
+
+function updateDiscUI(){
+  const n=disc.size,t=ANIMALS.length;
+  document.getElementById('disc-count').innerHTML=`${n}/<span id="disc-total">${t}</span>`;
+  document.getElementById('disc-text').textContent=n;
+  document.getElementById('disc-total2').textContent=t;
+  document.getElementById('disc-bar').style.width=`${(n/t)*100}%`;
+}
+function toggleDisc(){const p=document.getElementById('disc-panel');p.style.display=p.style.display==='block'?'none':'block';}
+function surpriseMe(){const l=filtered();if(!l.length)return;openModal(ANIMALS.indexOf(l[Math.floor(Math.random()*l.length)]));}
+function resetCat(){activeCat='all';document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active',p.dataset.cat==='all'));renderCards();updateMarkers();}
+function cap(s){return s[0].toUpperCase()+s.slice(1)}
+
+function initTicker(){const facts=ANIMALS.flatMap(a=>a.facts.map(f=>a.name+' — '+f)).sort(()=>Math.random()-.5);const track=document.getElementById('ticker-track');const el=document.getElementById('ticker');let idx=0,anim=null,paused=false;function playNext(){el.style.transition='opacity 0.4s';el.style.opacity='0';setTimeout(()=>{el.textContent=facts[idx++%facts.length];el.style.transition='none';const cw=track.clientWidth;el.style.transform=`translateX(${cw}px)`;void el.offsetWidth;el.style.transition='opacity 0.4s';el.style.opacity='1';const tw=el.scrollWidth;const dur=(cw+tw)/50*1000;if(anim)anim.cancel();anim=el.animate([{transform:`translateX(${cw}px)`},{transform:`translateX(-${tw}px)`}],{duration:dur,easing:'linear',fill:'forwards'});if(paused)anim.pause();anim.onfinish=()=>setTimeout(playNext,400);},400);}track.addEventListener('mouseenter',()=>{paused=true;if(anim)anim.pause();});track.addEventListener('mouseleave',()=>{paused=false;if(anim)anim.play();});playNext();}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  initMap();renderCards();updateDiscUI();initTicker();
+});
+document.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',function(){
+  document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
+  this.classList.add('active');activeCat=this.dataset.cat;renderCards();updateMarkers();
+}));
+document.getElementById('search-input').addEventListener('input',function(){searchQ=this.value;renderCards();updateMarkers();});
+document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target.id==='modal-overlay')closeModal();});
+document.getElementById('modal-close').addEventListener('click',closeModal);
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');document.body.style.overflow='';currentModal=null;}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeModal();
+  if(e.key==='ArrowRight'&&currentModal!==null){const i=currentList.indexOf(ANIMALS[currentModal]);if(i<currentList.length-1)openModal(ANIMALS.indexOf(currentList[i+1]));}
+  if(e.key==='ArrowLeft'&&currentModal!==null){const i=currentList.indexOf(ANIMALS[currentModal]);if(i>0)openModal(ANIMALS.indexOf(currentList[i-1]));}
+});
+</script>
+<script src="paw-cursor.js" defer></script>
+</body>
+</html>

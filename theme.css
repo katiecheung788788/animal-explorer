@@ -1,0 +1,215 @@
+/* =====================================================================
+   Animal Explorer — "Modern Natural History Archive" theme
+   Editorial dark mode · Fraunces + Archivo · thin-line iconography.
+   Loaded LAST in <head> so it re-skins every page via shared tokens.
+   ===================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Archivo:wght@400;500;600;700&display=swap');
+
+/* ---- Design tokens (override the per-page :root) ---- */
+:root{
+  --bg:#121311; --bg-grad:#0b0c0a; --card:#1b1d18; --elev:#23261e;
+  --border:#33372c; --line:#2a2d23;
+  --text:#ece6d8; --sub:#9a9c88; --faint:#6f7263;
+  --accent:#c4d46c; --accent-2:#e0a64e;
+  --accent-soft:rgba(196,212,108,.13); --accent-line:rgba(196,212,108,.42);
+
+  --c-mammals:#c8924f; --c-reptiles:#74b06a; --c-birds:#5fa0d2;
+  --c-fish:#4cb8b3; --c-insects:#cdac42; --c-amphibians:#9f80d8;
+
+  --s-lc:#8fb05a; --s-nt:#cbb45a; --s-vu:#dc9b4e; --s-en:#d27246; --s-cr:#c25441;
+
+  --font-display:'Fraunces',Georgia,'Times New Roman',serif;
+  --font-ui:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --r:9px; --r-lg:13px; --r-pill:7px;
+  --shadow:0 22px 48px -22px rgba(0,0,0,.72);
+  --shadow-sm:0 6px 18px -10px rgba(0,0,0,.6);
+}
+
+/* ---- Typography base ---- */
+*{font-family:var(--font-ui)!important;}
+body{background:var(--bg)!important;color:var(--text)!important;
+  font-family:var(--font-ui)!important;-webkit-font-smoothing:antialiased;
+  letter-spacing:.005em;}
+h1,h2,h3,.logo,.card-name,.card-continent,.modal-hero-title h2,.modal-name,
+.biome-name,.biome-detail-name,.results-header h2,.cf-label,.section-title,
+.empty-state .big,.continent-card .card-continent{
+  font-family:var(--font-display)!important;font-optical-sizing:auto;
+  font-weight:600!important;letter-spacing:-.01em;}
+h1{letter-spacing:-.02em!important;}
+em,i,.modal-hero-title em,.modal-sci,.card-sci{font-family:var(--font-display)!important;font-style:italic;}
+::selection{background:var(--accent-soft);color:var(--text);}
+
+/* small-caps tracked labels */
+.facts-head,.habitat-title,.cf-title,.ticker-label,.count-label,.biome-facts-title,
+.biome-animals-title,.modal-section,.results-header #results-count{
+  text-transform:uppercase!important;letter-spacing:.16em!important;
+  font-size:.62rem!important;color:var(--sub)!important;font-weight:600!important;}
+
+/* ---- Scrollbar ---- */
+*::-webkit-scrollbar{width:10px;height:10px;}
+*::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+*::-webkit-scrollbar-track{background:transparent;}
+
+/* ---- Header / nav ---- */
+header{background:linear-gradient(180deg,var(--bg-grad),transparent)!important;
+  border-bottom:1px solid var(--line);}
+.logo{color:var(--text)!important;font-size:1.15rem!important;letter-spacing:-.01em!important;}
+.back-btn{background:transparent!important;border:1px solid var(--border)!important;
+  color:var(--sub)!important;border-radius:var(--r-pill)!important;
+  text-transform:uppercase;letter-spacing:.12em;font-size:.7rem!important;font-weight:600;
+  transition:border-color .2s,color .2s,background .2s!important;}
+.back-btn:hover{border-color:var(--accent-line)!important;color:var(--accent)!important;
+  background:var(--accent-soft)!important;}
+.svg-ic{display:inline-block;vertical-align:-.16em;width:1.05em;height:1.05em;
+  stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+
+/* ---- Hub landing ---- */
+h1., .globe{filter:none;}
+.globe{animation:none!important;color:var(--accent)!important;opacity:.9;}
+.subtitle,.header-sub{color:var(--sub)!important;}
+.total-badge,.disc-badge{background:var(--accent-soft)!important;border:1px solid var(--accent-line)!important;
+  color:var(--accent)!important;border-radius:var(--r-pill)!important;
+  text-transform:uppercase;letter-spacing:.1em;font-size:.72rem!important;font-weight:600;}
+.explore-all-btn{background:var(--accent)!important;color:#171812!important;
+  border:none!important;border-radius:var(--r-pill)!important;font-weight:600!important;
+  letter-spacing:.02em;box-shadow:var(--shadow-sm)!important;transition:transform .18s,box-shadow .2s!important;}
+.explore-all-btn:hover{transform:translateY(-2px);box-shadow:0 14px 30px -10px rgba(196,212,108,.45)!important;}
+
+/* continent cards (hub) */
+.continent-card{background:var(--card)!important;border:1px solid var(--border)!important;
+  border-radius:var(--r-lg)!important;transition:transform .25s,border-color .25s,box-shadow .25s!important;}
+.continent-card:hover{transform:translateY(-5px)!important;border-color:var(--accent-line)!important;
+  box-shadow:var(--shadow)!important;}
+.card-bg{height:120px!important;border-bottom:1px solid var(--line);}
+.emoji-bg{font-size:0!important;}              /* hide hub globe emoji; replaced by JS marker */
+.card-continent{color:var(--text)!important;font-size:1.25rem!important;}
+.card-desc{color:var(--sub)!important;}
+.card-link{background:transparent!important;border:1px solid var(--border)!important;
+  color:var(--accent)!important;border-radius:var(--r-pill)!important;
+  text-transform:uppercase;letter-spacing:.1em;font-size:.72rem!important;font-weight:600;}
+.continent-card:hover .card-link{background:var(--accent-soft)!important;border-color:var(--accent-line)!important;}
+
+/* ---- Controls: search, pills, buttons ---- */
+.search-wrap,.search-row{background:var(--card)!important;border:1px solid var(--border)!important;
+  border-radius:var(--r)!important;transition:border-color .2s,box-shadow .2s!important;}
+.search-wrap:focus-within{border-color:var(--accent-line)!important;box-shadow:0 0 0 3px var(--accent-soft)!important;}
+.search-input{color:var(--text)!important;font-size:.86rem!important;}
+.search-input::placeholder{color:var(--faint)!important;}
+.search-icon{font-size:0!important;}
+
+.pill,.cat-btn,.region-pill{background:var(--card)!important;border:1px solid var(--border)!important;
+  color:var(--sub)!important;border-radius:var(--r-pill)!important;
+  font-size:.76rem!important;font-weight:600!important;letter-spacing:.01em;
+  transition:border-color .18s,color .18s,background .18s!important;
+  display:inline-flex;align-items:center;gap:.5em;}
+.pill:hover,.cat-btn:hover,.region-pill:hover{border-color:var(--accent-line)!important;color:var(--text)!important;}
+.pill.active,.cat-btn.active,.region-pill.active{background:var(--accent)!important;color:#171812!important;
+  border-color:var(--accent)!important;}
+
+/* category colour dot (typographic icon treatment, replaces emoji) */
+.pill[data-cat]::before,.cat-btn[data-cat]::before{content:"";width:7px;height:7px;border-radius:50%;
+  background:var(--dot,var(--sub));flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.04);}
+.pill[data-cat="all"]::before,.cat-btn[data-cat="all"]::before{display:none;}
+[data-cat="mammals"]{--dot:var(--c-mammals);} [data-cat="reptiles"]{--dot:var(--c-reptiles);}
+[data-cat="birds"]{--dot:var(--c-birds);} [data-cat="fish"]{--dot:var(--c-fish);}
+[data-cat="insects"]{--dot:var(--c-insects);} [data-cat="amphibians"]{--dot:var(--c-amphibians);}
+.pill.active::before,.cat-btn.active::before{box-shadow:0 0 0 2px rgba(0,0,0,.15)!important;}
+
+.surprise-btn{background:transparent!important;border:1px dashed var(--accent-line)!important;
+  color:var(--accent)!important;border-radius:var(--r-pill)!important;font-weight:600!important;
+  letter-spacing:.02em;transition:background .18s!important;display:inline-flex;align-items:center;gap:.45em;}
+.surprise-btn:hover{background:var(--accent-soft)!important;}
+#reset-btn,.modal-nav button,.walkthrough-btn,.modal-cont-link{
+  border-radius:var(--r-pill)!important;font-weight:600!important;letter-spacing:.02em;}
+#reset-btn:hover,.modal-nav button:hover{border-color:var(--accent-line)!important;color:var(--accent)!important;}
+
+/* ---- Animal cards ---- */
+.card,.cf-btn{background:var(--card)!important;border:1px solid var(--border)!important;
+  border-radius:var(--r)!important;transition:transform .25s,border-color .25s,box-shadow .25s!important;}
+.card:hover,.cf-btn:hover{border-color:var(--accent-line)!important;box-shadow:var(--shadow)!important;}
+.card-name{font-size:.96rem!important;color:var(--text)!important;line-height:1.2;}
+.card-region,.card-sci{color:var(--sub)!important;}
+.card-overlay{background:rgba(12,13,11,.9)!important;backdrop-filter:blur(3px);}
+.card-overlay small{color:var(--accent)!important;text-transform:uppercase;letter-spacing:.14em;font-size:.6rem!important;}
+.card-check{background:var(--accent)!important;color:#171812!important;}
+.card-fallback,.fallback-hero,.biome-thumb-emoji,.modal-emoji,.card-emoji{
+  font-size:0!important;}                       /* emoji fallbacks hidden; JS draws silhouette */
+.card-fallback .svg-ic,.fallback-hero .svg-ic{width:46%;height:46%;opacity:.5;stroke-width:1.2;}
+
+/* ---- Badges: category + conservation ---- */
+.badge,.s-badge{border-radius:5px!important;text-transform:uppercase;letter-spacing:.08em;
+  font-weight:700!important;font-size:.6rem!important;border:1px solid transparent!important;}
+.b-mammals{background:rgba(200,146,79,.16)!important;color:var(--c-mammals)!important;border-color:rgba(200,146,79,.34)!important;}
+.b-reptiles{background:rgba(116,176,106,.16)!important;color:var(--c-reptiles)!important;border-color:rgba(116,176,106,.34)!important;}
+.b-birds{background:rgba(95,160,210,.16)!important;color:var(--c-birds)!important;border-color:rgba(95,160,210,.34)!important;}
+.b-fish{background:rgba(76,184,179,.16)!important;color:var(--c-fish)!important;border-color:rgba(76,184,179,.34)!important;}
+.b-insects{background:rgba(205,172,66,.16)!important;color:var(--c-insects)!important;border-color:rgba(205,172,66,.34)!important;}
+.b-amphibians{background:rgba(159,128,216,.16)!important;color:var(--c-amphibians)!important;border-color:rgba(159,128,216,.34)!important;}
+.s-LC{background:rgba(143,176,90,.14)!important;color:var(--s-lc)!important;border-color:rgba(143,176,90,.3)!important;}
+.s-NT{background:rgba(203,180,90,.14)!important;color:var(--s-nt)!important;border-color:rgba(203,180,90,.3)!important;}
+.s-VU{background:rgba(220,155,78,.14)!important;color:var(--s-vu)!important;border-color:rgba(220,155,78,.3)!important;}
+.s-EN{background:rgba(210,114,70,.14)!important;color:var(--s-en)!important;border-color:rgba(210,114,70,.3)!important;}
+.s-CR{background:rgba(194,84,65,.16)!important;color:var(--s-cr)!important;border-color:rgba(194,84,65,.32)!important;}
+
+/* category-tinted card/hero panels */
+.bg-mammals{background:linear-gradient(150deg,#22190f,#2c2114)!important;}
+.bg-reptiles{background:linear-gradient(150deg,#13210f,#1b2e16)!important;}
+.bg-birds{background:linear-gradient(150deg,#0f1a26,#142536)!important;}
+.bg-fish{background:linear-gradient(150deg,#0d1f1e,#13302e)!important;}
+.bg-insects{background:linear-gradient(150deg,#201c0c,#2a2410)!important;}
+.bg-amphibians{background:linear-gradient(150deg,#1a1226,#241636)!important;}
+
+/* ---- Modal ---- */
+.modal{background:var(--card)!important;border:1px solid var(--border)!important;border-radius:var(--r-lg)!important;
+  box-shadow:var(--shadow)!important;}
+.modal-overlay,.overlay{background:rgba(8,9,7,.86)!important;backdrop-filter:blur(4px);}
+.modal-close{background:rgba(255,255,255,.07)!important;color:var(--text)!important;border:1px solid var(--border)!important;}
+.modal-close:hover{background:var(--accent-soft)!important;color:var(--accent)!important;border-color:var(--accent-line)!important;}
+.modal-hero-title h2,.modal-name{color:var(--text)!important;}
+.modal-hero-title em,.modal-sci{color:var(--accent)!important;}
+.modal-desc{font-family:var(--font-display)!important;font-size:1rem!important;line-height:1.7!important;color:#d8d2c2!important;}
+.facts-head,.habitat-title{color:var(--accent)!important;}
+.facts-list li::before{color:var(--accent)!important;content:"—"!important;}
+.facts-list li{color:var(--text)!important;border-color:var(--line)!important;}
+.habitat-section{background:rgba(255,255,255,.025)!important;border:1px solid var(--border)!important;border-radius:var(--r)!important;}
+.habitat-name{color:var(--sub)!important;}
+.habitat-btn,.map-btn,.btn-satellite,.btn-streetview{border-radius:var(--r-pill)!important;font-weight:600!important;
+  letter-spacing:.02em;display:inline-flex;align-items:center;gap:.45em;}
+.hbtn-sat,.map-btn-sat,.btn-satellite{background:var(--accent-soft)!important;color:var(--accent)!important;border:1px solid var(--accent-line)!important;}
+.hbtn-sv,.map-btn-sv,.btn-streetview{background:rgba(224,166,78,.12)!important;color:var(--accent-2)!important;border:1px solid rgba(224,166,78,.35)!important;}
+.hbtn-sat:hover,.hbtn-sv:hover,.map-btn:hover,.habitat-btn:hover{transform:translateY(-2px);}
+
+/* ---- Maps ---- */
+.leaflet-container{background:#0c0f0c!important;}
+.map-hint{color:var(--sub)!important;background:transparent!important;border-bottom:1px solid var(--line)!important;
+  text-transform:uppercase;letter-spacing:.12em;font-size:.66rem!important;display:flex;align-items:center;
+  justify-content:center;gap:.5em;}
+.animal-map-marker,.continent-marker{background:var(--card)!important;border:1.5px solid var(--border)!important;
+  color:var(--accent)!important;box-shadow:0 2px 8px rgba(0,0,0,.55)!important;}
+.animal-map-marker .svg-ic{width:18px;height:18px;}
+.animal-map-marker.discovered{border-color:var(--accent)!important;background:var(--accent-soft)!important;}
+
+/* ---- Ticker / discovery / biome ---- */
+.ticker-label{color:var(--accent)!important;}
+.disc-bar{background:var(--accent)!important;}
+.section-title{color:var(--text)!important;font-size:1.25rem!important;display:flex;align-items:center;gap:.5em;}
+.biome-section,.biome-detail,.biome-info{border-color:var(--border)!important;}
+.biome-chip,.biome-thumb{background:var(--elev)!important;border:1px solid var(--border)!important;border-radius:var(--r-pill)!important;}
+
+/* ---- Empty state ---- */
+.empty-state,.empty{color:var(--sub)!important;}
+.empty-state .big,.empty-icon{font-size:0!important;}
+.empty-state .big .svg-ic,.empty-icon .svg-ic{width:48px;height:48px;opacity:.5;}
+
+/* ---- Footer ---- */
+footer{border-top:1px solid var(--line)!important;color:var(--faint)!important;
+  text-transform:uppercase;letter-spacing:.1em;font-size:.66rem!important;}
+
+/* sizing for JS-rendered category icons inside font-size:0 fallback panels */
+.card-emoji .svg-ic,.modal-emoji .svg-ic{width:44%!important;height:44%!important;opacity:.5;stroke-width:1.2;}
+.biome-thumb-emoji .svg-ic{width:42%!important;height:42%!important;opacity:.55;}
+.cf-bg .svg-ic{width:30px!important;height:30px!important;opacity:.85;}
+.continent-marker .svg-ic{width:15px!important;height:15px!important;}
+
+/* reduced motion already handled globally by browser; keep transitions subtle */
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important;}}

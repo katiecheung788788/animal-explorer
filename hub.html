@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Animal Explorer — World Hub</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#060d06;--card:#101a10;--border:#1a301a;--text:#ddeacc;--sub:#6a8a5a;--accent:#f0d07a}
+body{background:var(--bg);color:var(--text);font-family:Georgia,serif;min-height:100vh}
+header{text-align:center;padding:3rem 1.5rem 1.5rem;background:linear-gradient(180deg,#030a03,transparent)}
+.globe{font-size:4rem;margin-bottom:.5rem;animation:spin 20s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+h1{font-size:2.4rem;color:var(--accent);letter-spacing:1px;margin-bottom:.4rem}
+.subtitle{color:var(--sub);font:.9rem Arial,sans-serif;max-width:500px;margin:0 auto 2.5rem}
+.total-badge{display:inline-block;padding:.4rem 1.2rem;background:rgba(240,208,122,.1);
+  border:1px solid rgba(240,208,122,.3);border-radius:20px;font:.8rem Arial,sans-serif;
+  color:var(--accent);margin-bottom:1rem}
+.explore-all-btn{display:inline-block;margin-bottom:2rem;padding:.55rem 1.6rem;
+  background:linear-gradient(135deg,rgba(240,208,122,.18),rgba(240,208,122,.08));
+  border:1px solid rgba(240,208,122,.5);border-radius:24px;
+  font:.85rem Arial,sans-serif;color:var(--accent);text-decoration:none;
+  transition:background .2s,box-shadow .2s}
+.explore-all-btn:hover{background:linear-gradient(135deg,rgba(240,208,122,.32),rgba(240,208,122,.15));
+  box-shadow:0 4px 20px rgba(240,208,122,.2)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;
+  max-width:1100px;margin:0 auto;padding:0 1.5rem 4rem}
+.continent-card{border-radius:18px;overflow:hidden;cursor:pointer;
+  border:1px solid var(--border);background:var(--card);
+  transition:transform .25s,box-shadow .25s,border-color .25s;
+  text-decoration:none;display:block;color:inherit}
+.continent-card:hover{transform:translateY(-6px);box-shadow:0 20px 50px rgba(0,0,0,.6);
+  border-color:rgba(240,208,122,.4)}
+.card-bg{height:160px;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden}
+.card-bg .emoji-bg{font-size:6rem;opacity:.55;transition:transform .4s}
+.continent-card:hover .emoji-bg{transform:scale(1.15)}
+.card-body{padding:1.2rem 1.4rem 1.4rem}
+.card-continent{font-size:1.2rem;margin-bottom:.25rem;color:var(--accent)}
+.card-desc{font:.8rem/1.55 Arial,sans-serif;color:var(--sub);margin-bottom:.9rem}
+.card-stats{display:flex;gap:1.2rem;font:.75rem Arial,sans-serif}
+.stat{display:flex;flex-direction:column;gap:.1rem}
+.stat-n{font-size:1.1rem;color:var(--text);font-weight:bold}
+.stat-l{color:var(--sub)}
+.card-link{display:inline-block;margin-top:.9rem;padding:.38rem 1rem;
+  background:rgba(240,208,122,.1);border:1px solid rgba(240,208,122,.3);
+  border-radius:20px;font:.78rem Arial,sans-serif;color:var(--accent);
+  transition:background .2s}
+.continent-card:hover .card-link{background:rgba(240,208,122,.2)}
+
+.africa-bg  {background:linear-gradient(135deg,#1a1000,#2e1a00,#1a2a00)}
+.asia-bg    {background:linear-gradient(135deg,#001a10,#00100a,#001a22)}
+.na-bg      {background:linear-gradient(135deg,#0a001a,#001020,#001a0a)}
+.sa-bg      {background:linear-gradient(135deg,#001a00,#0a1a00,#001800)}
+.europe-bg  {background:linear-gradient(135deg,#00001a,#0a000a,#001010)}
+.oceania-bg {background:linear-gradient(135deg,#001020,#001a18,#00100a)}
+
+footer{text-align:center;padding:2rem;color:var(--sub);font:.8rem Arial,sans-serif;
+  border-top:1px solid var(--border)}
+</style>
+<script src="icons.js"></script>
+<link rel="stylesheet" href="theme.css"/>
+<style>
+/* continent landscape covers */
+.card-bg{position:relative;height:160px!important;background-size:cover;background-position:center;
+  filter:saturate(.92);transition:opacity .5s ease}
+.card-bg::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(18,19,17,.05) 30%,rgba(18,19,17,.72))}
+.card-bg.is-loading{opacity:.55}
+.continent-card:hover .card-bg{filter:saturate(1.05)}
+</style>
+</head>
+<body>
+<header>
+  <div class="globe">🌍</div>
+  <h1>Animal Explorer</h1>
+  <p class="subtitle">Six continents. Six dedicated wildlife guides. Real satellite maps, Wikipedia photos, and Google Maps walkthroughs for every animal.</p>
+  <div class="total-badge">🐾 360+ animals across 6 continents</div>
+  <br>
+  <a class="explore-all-btn" href="all.html">🌍 Explore All Continents →</a>
+</header>
+
+<div class="grid">
+  <a class="continent-card" href="africa.html">
+    <div class="card-bg africa-bg" data-landscape="Serengeti"></div>
+    <div class="card-body">
+      <div class="card-continent">🌍 Africa</div>
+      <p class="card-desc">From the Serengeti to the Congo Basin — lions, gorillas, black mambas, shoebills, and the greatest wildlife spectacles on Earth.</p>
+      <div class="card-stats">
+        <div class="stat"><span class="stat-n">60</span><span class="stat-l">Animals</span></div>
+        <div class="stat"><span class="stat-n">6</span><span class="stat-l">Categories</span></div>
+        <div class="stat"><span class="stat-n">10</span><span class="stat-l">Regions</span></div>
+      </div>
+      <span class="card-link">Explore Africa →</span>
+    </div>
+  </a>
+
+  <a class="continent-card" href="asia.html">
+    <div class="card-bg asia-bg" data-landscape="Mount_Everest"></div>
+    <div class="card-body">
+      <div class="card-continent">🌏 Asia</div>
+      <p class="card-desc">The world's largest continent — tigers, pandas, komodo dragons, king cobras, and ancient jungle species found nowhere else.</p>
+      <div class="card-stats">
+        <div class="stat"><span class="stat-n">60</span><span class="stat-l">Animals</span></div>
+        <div class="stat"><span class="stat-n">6</span><span class="stat-l">Categories</span></div>
+        <div class="stat"><span class="stat-n">10</span><span class="stat-l">Regions</span></div>
+      </div>
+      <span class="card-link">Explore Asia →</span>
+    </div>
+  </a>
+
+  <a class="continent-card" href="northamerica.html">
+    <div class="card-bg na-bg" data-landscape="Grand_Canyon"></div>
+    <div class="card-body">
+      <div class="card-continent">🌎 North America</div>
+      <p class="card-desc">Grizzlies in Yellowstone, wolves in the wilderness, bald eagles soaring over Alaskan fjords, and polar bears on Arctic sea ice.</p>
+      <div class="card-stats">
+        <div class="stat"><span class="stat-n">60</span><span class="stat-l">Animals</span></div>
+        <div class="stat"><span class="stat-n">6</span><span class="stat-l">Categories</span></div>
+        <div class="stat"><span class="stat-n">10</span><span class="stat-l">Regions</span></div>
+      </div>
+      <span class="card-link">Explore N. America →</span>
+    </div>
+  </a>
+
+  <a class="continent-card" href="southamerica.html">
+    <div class="card-bg sa-bg" data-landscape="Amazon_rainforest"></div>
+    <div class="card-body">
+      <div class="card-continent">🌎 South America</div>
+      <p class="card-desc">The Amazon Rainforest, Pantanal wetlands, and Andean peaks — jaguars, anacondas, pink dolphins, and poison dart frogs.</p>
+      <div class="card-stats">
+        <div class="stat"><span class="stat-n">60</span><span class="stat-l">Animals</span></div>
+        <div class="stat"><span class="stat-n">6</span><span class="stat-l">Categories</span></div>
+        <div class="stat"><span class="stat-n">10</span><span class="stat-l">Regions</span></div>
+      </div>
+      <span class="card-link">Explore S. America →</span>
+    </div>
+  </a>
+
+  <a class="continent-card" href="europe.html">
+    <div class="card-bg europe-bg" data-landscape="Matterhorn"></div>
+    <div class="card-body">
+      <div class="card-continent">🌍 Europe</div>
+      <p class="card-desc">Ancient woodlands, Alpine peaks, and Atlantic coasts — lynx, brown bears, peregrine falcons, and Mediterranean marine life.</p>
+      <div class="card-stats">
+        <div class="stat"><span class="stat-n">60</span><span class="stat-l">Animals</span></div>
+        <div class="stat"><span class="stat-n">6</span><span class="stat-l">Categories</span></div>
+        <div class="stat"><span class="stat-n">10</span><span class="stat-l">Regions</span></div>
+      </div>
+      <span class="card-link">Explore Europe →</span>
+    </div>
+  </a>
+
+  <a class="continent-card" href="oceania.html">
+    <div class="card-bg oceania-bg" data-landscape="Uluru"></div>
+    <div class="card-body">
+      <div class="card-continent">🌏 Oceania</div>
+      <p class="card-desc">The most unique wildlife on Earth — marsupials, monotremes, the Great Barrier Reef, and ancient species isolated for millions of years.</p>
+      <div class="card-stats">
+        <div class="stat"><span class="stat-n">60</span><span class="stat-l">Animals</span></div>
+        <div class="stat"><span class="stat-n">6</span><span class="stat-l">Categories</span></div>
+        <div class="stat"><span class="stat-n">10</span><span class="stat-l">Regions</span></div>
+      </div>
+      <span class="card-link">Explore Oceania →</span>
+    </div>
+  </a>
+</div>
+
+<footer>Animal Explorer &nbsp;·&nbsp; Real Wikipedia photos &nbsp;·&nbsp; Free satellite maps &nbsp;·&nbsp; No login required</footer>
+<script>
+/* Load a representative landscape photo for each continent card (Wikipedia/Wikimedia). */
+(function () {
+  document.querySelectorAll('.card-bg[data-landscape]').forEach(function (el) {
+    el.classList.add('is-loading');
+    var title = el.dataset.landscape;
+    var api = 'https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail'
+            + '&pithumbsize=960&format=json&origin=*&titles=' + encodeURIComponent(title);
+    fetch(api)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var pages = d && d.query && d.query.pages || {};
+        var page = pages[Object.keys(pages)[0]] || {};
+        var src = page.thumbnail && page.thumbnail.source;
+        if (!src) { el.classList.remove('is-loading'); return; }
+        var img = new Image();
+        img.onload = function () { el.style.backgroundImage = 'url("' + src + '")'; el.classList.remove('is-loading'); };
+        img.onerror = function () { el.classList.remove('is-loading'); };
+        img.src = src;
+      })
+      .catch(function () { el.classList.remove('is-loading'); });
+  });
+})();
+</script>
+<script src="paw-cursor.js" defer></script>
+</body>
+</html>
