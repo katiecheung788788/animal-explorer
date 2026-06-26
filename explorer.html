@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Animal Explorer — 60 Animals</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#090f09;--card:#121e12;--border:#1e341e;
+  --text:#ddeacc;--sub:#6a8a5a;--accent:#f0d07a;
+  --mammal:#2e6e20;--reptile:#7a3a10;--bird:#164880;
+  --fish:#086060;--insect:#706000;--amphibian:#4a1878;
+}
+body{background:var(--bg);color:var(--text);font-family:Georgia,serif;min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;
+  padding:1rem 1.6rem;background:#0d160d;border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:500}
+.logo{font-size:1.35rem;color:var(--accent);letter-spacing:.5px;white-space:nowrap}
+.logo span{font-size:.75rem;vertical-align:super;color:var(--sub)}
+.header-right{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.ticker-wrap{display:flex;align-items:center;gap:.5rem;font:italic .78rem/1.3 Arial,sans-serif;
+  color:var(--sub);max-width:340px;overflow:hidden}
+.ticker-label{color:var(--accent);font-style:normal;white-space:nowrap;font-weight:bold}
+#ticker{transition:opacity .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.disc-badge{display:flex;align-items:center;gap:.35rem;padding:.3rem .75rem;
+  border:1px solid rgba(240,208,122,.25);border-radius:20px;
+  font:.78rem Arial,sans-serif;color:var(--accent);white-space:nowrap;
+  background:rgba(240,208,122,.06);cursor:pointer;transition:background .2s}
+.disc-badge:hover{background:rgba(240,208,122,.12)}
+
+/* DISCOVERY PANEL */
+.disc-panel{display:none;padding:.6rem 1.6rem;background:#0a130a;border-bottom:1px solid var(--border)}
+.disc-bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:.3rem}
+.disc-bar{height:100%;background:linear-gradient(90deg,#3a7820,var(--accent));border-radius:3px;transition:width .5s}
+.disc-panel p{font:.73rem Arial,sans-serif;color:var(--sub)}
+.disc-panel p span{color:var(--accent)}
+
+/* CONTROLS */
+.controls{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+  padding:.7rem 1.6rem;background:#0d160d;border-bottom:1px solid var(--border)}
+.search-wrap{position:relative;flex:1;min-width:160px;max-width:260px}
+.search-wrap svg{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);
+  width:14px;height:14px;stroke:var(--sub);fill:none;pointer-events:none}
+.search-input{width:100%;padding:.38rem .8rem .38rem 2rem;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;
+  color:var(--text);font:.82rem Arial,sans-serif;outline:none;transition:border-color .2s}
+.search-input:focus{border-color:var(--accent);background:rgba(255,255,255,.07)}
+.search-input::placeholder{color:var(--sub)}
+.pill{padding:.35rem .85rem;border-radius:20px;border:1px solid var(--border);
+  background:transparent;color:var(--sub);font:.78rem Arial,sans-serif;cursor:pointer;
+  transition:all .15s;white-space:nowrap}
+.pill:hover{border-color:var(--accent);color:var(--accent)}
+.pill.active[data-cat=all]        {background:var(--accent);border-color:var(--accent);color:#111;font-weight:bold}
+.pill.active[data-cat=mammals]    {background:var(--mammal);border-color:var(--mammal);color:#fff;font-weight:bold}
+.pill.active[data-cat=reptiles]   {background:var(--reptile);border-color:var(--reptile);color:#fff;font-weight:bold}
+.pill.active[data-cat=birds]      {background:var(--bird);border-color:var(--bird);color:#fff;font-weight:bold}
+.pill.active[data-cat=fish]       {background:var(--fish);border-color:var(--fish);color:#fff;font-weight:bold}
+.pill.active[data-cat=insects]    {background:var(--insect);border-color:var(--insect);color:#fff;font-weight:bold}
+.pill.active[data-cat=amphibians] {background:var(--amphibian);border-color:var(--amphibian);color:#fff;font-weight:bold}
+.surprise-btn{padding:.38rem 1rem;border:none;border-radius:20px;
+  background:linear-gradient(135deg,#3a1880,#7030d0);color:#fff;
+  font:.78rem Arial,sans-serif;cursor:pointer;transition:transform .15s,box-shadow .15s;white-space:nowrap}
+.surprise-btn:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(112,48,208,.45)}
+
+/* REGION FILTER BAR */
+.region-bar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+  padding:.5rem 1.6rem;background:#0b140b;border-bottom:1px solid var(--border)}
+.region-pill{padding:.28rem .75rem;border-radius:20px;border:1px solid var(--border);
+  background:transparent;color:var(--sub);font:.75rem Arial,sans-serif;cursor:pointer;transition:all .15s}
+.region-pill:hover{border-color:var(--accent);color:var(--accent)}
+.region-pill.active{background:rgba(240,208,122,.15);border-color:var(--accent);color:var(--accent);font-weight:bold}
+
+/* SATELLITE MAP */
+.map-section{position:relative;border-bottom:2px solid var(--border)}
+#world-map{height:420px;width:100%}
+.map-label-overlay{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:400}
+.map-hint{text-align:center;padding:.35rem;color:var(--sub);font:1rem Arial,sans-serif;
+  background:#0b140b;letter-spacing:.3px;border-bottom:1px solid var(--border)}
+
+/* Leaflet overrides */
+.leaflet-container{background:#060e1e;font-family:Arial,sans-serif}
+.animal-map-marker{
+  width:36px;height:36px;border-radius:50%;background:rgba(9,15,9,.88);
+  border:2px solid rgba(240,208,122,.5);display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;transition:transform .15s,box-shadow .15s;
+  box-shadow:0 2px 8px rgba(0,0,0,.6)}
+.animal-map-marker:hover{transform:scale(1.25);box-shadow:0 0 12px rgba(240,208,122,.5);
+  border-color:var(--accent)}
+.animal-map-marker.discovered{border-color:var(--accent);background:rgba(240,208,122,.15)}
+.continent-marker{
+  padding:.35rem .8rem;background:rgba(9,15,9,.85);border:1px solid rgba(240,208,122,.35);
+  border-radius:20px;color:var(--accent);font:.72rem Arial,sans-serif;font-weight:bold;
+  cursor:pointer;white-space:nowrap;transition:background .2s}
+.continent-marker:hover,.continent-marker.active{background:rgba(240,208,122,.2)}
+
+/* BIOME SECTION */
+.biome-section{padding:1.2rem 1.6rem;background:#0a130a;border-bottom:1px solid var(--border)}
+.section-title{font-size:1rem;color:var(--accent);margin-bottom:.8rem;
+  display:flex;align-items:center;gap:.5rem}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border);margin-left:.5rem}
+.biome-scroll{display:flex;gap:.9rem;overflow-x:auto;padding-bottom:.5rem;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.biome-scroll::-webkit-scrollbar{height:4px}
+.biome-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.biome-card{flex:0 0 180px;border-radius:12px;overflow:hidden;cursor:pointer;
+  border:1px solid var(--border);background:var(--card);transition:border-color .2s,box-shadow .2s}
+.biome-card:hover{border-color:rgba(240,208,122,.4);box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.biome-card.active{border-color:var(--accent);box-shadow:0 0 16px rgba(240,208,122,.25)}
+.biome-thumb{height:100px;position:relative;overflow:hidden;background:#0d1a0d}
+.biome-thumb img{width:100%;height:100%;object-fit:cover;opacity:.8}
+.biome-thumb-emoji{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:3rem}
+.biome-info{padding:.5rem .7rem .6rem}
+.biome-name{font:.8rem/1.3 Arial,sans-serif;color:var(--text);font-weight:bold;margin-bottom:.2rem}
+.biome-meta{font:.68rem Arial,sans-serif;color:var(--sub)}
+
+/* BIOME DETAIL PANEL */
+.biome-detail{display:none;background:#0b160b;border:1px solid var(--border);
+  border-radius:14px;margin-top:1rem;overflow:hidden}
+.biome-detail.open{display:block;animation:slideUp .3s ease}
+.biome-detail-map{height:320px;width:100%;border-bottom:1px solid var(--border)}
+.biome-detail-body{padding:1rem 1.2rem}
+.biome-detail-name{font-size:1.1rem;color:var(--accent);margin-bottom:.3rem}
+.biome-detail-climate{font:.75rem Arial,sans-serif;color:var(--sub);margin-bottom:.6rem}
+.biome-detail-desc{font:.85rem/1.65 Arial,sans-serif;color:#ccd8bb;margin-bottom:.8rem}
+.biome-walkthrough-btns{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem}
+.walkthrough-btn{padding:.42rem 1rem;border-radius:20px;border:none;cursor:pointer;
+  font:.78rem Arial,sans-serif;font-weight:bold;transition:transform .15s,box-shadow .15s;
+  display:flex;align-items:center;gap:.4rem}
+.walkthrough-btn:hover{transform:translateY(-2px)}
+.btn-satellite{background:linear-gradient(135deg,#13421a,#1a5e22);color:#90d890}
+.btn-satellite:hover{box-shadow:0 4px 12px rgba(26,94,34,.5)}
+.btn-streetview{background:linear-gradient(135deg,#421318,#5e1a1a);color:#d89090}
+.btn-streetview:hover{box-shadow:0 4px 12px rgba(94,26,26,.5)}
+.btn-lookaround{background:linear-gradient(135deg,#133042,#1a4260);color:#90c0e8}
+.biome-facts{margin-bottom:.8rem}
+.biome-facts-title{font:.68rem Arial,sans-serif;font-weight:bold;
+  text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.4rem}
+.biome-facts li{font:.8rem/1.6 Arial,sans-serif;color:#ccd8bb;
+  border-bottom:1px solid var(--border);padding:.28rem 0;list-style:none;
+  display:flex;gap:.5rem}
+.biome-facts li::before{content:'▸';color:var(--accent);flex-shrink:0}
+.biome-animals-title{font:.68rem Arial,sans-serif;font-weight:bold;
+  text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.5rem}
+.biome-animal-chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.biome-chip{padding:.25rem .6rem;border-radius:12px;background:rgba(255,255,255,.04);
+  border:1px solid var(--border);font:.72rem Arial,sans-serif;color:var(--sub);
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.3rem}
+.biome-chip:hover{border-color:var(--accent);color:var(--accent)}
+
+/* RESULTS */
+.results-section{padding:1.3rem 1.6rem}
+.results-header{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.results-header h2{font-size:1.2rem;color:var(--accent)}
+#results-count{color:var(--sub);font:.8rem Arial,sans-serif}
+#reset-btn{margin-left:auto;padding:.28rem .75rem;background:transparent;
+  border:1px solid var(--border);color:var(--sub);font:.76rem Arial,sans-serif;
+  border-radius:20px;cursor:pointer;transition:all .15s}
+#reset-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARD */
+.card{border-radius:14px;overflow:hidden;cursor:pointer;
+  border:1px solid var(--border);background:var(--card);
+  box-shadow:0 2px 8px rgba(0,0,0,.4);animation:slideUp .35s ease backwards;
+  transition:box-shadow .3s,border-color .25s;position:relative;will-change:transform}
+.card:hover{box-shadow:0 12px 32px rgba(0,0,0,.6);border-color:rgba(240,208,122,.35)}
+.card-photo{height:170px;position:relative;overflow:hidden}
+.card-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:5rem;z-index:1;transition:opacity .3s}
+.card-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  z-index:2;transition:transform .5s ease,opacity .3s}
+.card:hover .card-photo img{transform:scale(1.07)}
+.card-overlay{position:absolute;inset:0 0 auto 0;height:170px;
+  background:rgba(5,10,5,.88);backdrop-filter:blur(2px);
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:1rem;text-align:center;z-index:3;opacity:0;transition:opacity .22s}
+.card:hover .card-overlay{opacity:1}
+.card-overlay p{font:.8rem/1.55 Arial,sans-serif;color:#dde;margin-bottom:.5rem}
+.card-overlay small{font:.7rem Arial,sans-serif;color:var(--accent);letter-spacing:.5px}
+.card-info{padding:.65rem .9rem .75rem;position:relative}
+.card-name{font-size:.9rem;margin-bottom:.3rem}
+.card-row{display:flex;align-items:center;justify-content:space-between;gap:.4rem}
+.card-region{color:var(--sub);font:.7rem Arial,sans-serif}
+.card-check{position:absolute;top:.55rem;right:.75rem;width:18px;height:18px;
+  border-radius:50%;background:var(--accent);color:#111;font:.72rem Arial,sans-serif;
+  font-weight:bold;display:flex;align-items:center;justify-content:center}
+.badge{display:inline-block;padding:.1rem .45rem;border-radius:10px;
+  font:bold .66rem/1.4 Arial,sans-serif;text-transform:uppercase;letter-spacing:.4px}
+.b-mammals   {background:rgba(46,110,32,.28);color:#70d450;border:1px solid rgba(46,110,32,.45)}
+.b-reptiles  {background:rgba(122,58,16,.28);color:#e08040;border:1px solid rgba(122,58,16,.45)}
+.b-birds     {background:rgba(22,72,128,.28);color:#58b0f0;border:1px solid rgba(22,72,128,.45)}
+.b-fish      {background:rgba(8,96,96,.28);  color:#30d8d8;border:1px solid rgba(8,96,96,.45)}
+.b-insects   {background:rgba(112,96,0,.28); color:#e0cc30;border:1px solid rgba(112,96,0,.45)}
+.b-amphibians{background:rgba(74,24,120,.28);color:#c070f0;border:1px solid rgba(74,24,120,.45)}
+.s-badge{display:inline-block;padding:.1rem .45rem;border-radius:10px;
+  font:bold .66rem/1.4 Arial,sans-serif;text-transform:uppercase;letter-spacing:.4px}
+.s-LC{background:rgba(32,110,32,.2);color:#60d060;border:1px solid rgba(32,110,32,.4)}
+.s-NT{background:rgba(190,170,0,.15);color:#d8c840;border:1px solid rgba(190,170,0,.3)}
+.s-VU{background:rgba(190,110,0,.15);color:#e09030;border:1px solid rgba(190,110,0,.3)}
+.s-EN{background:rgba(190,55,0,.15);color:#e05828;border:1px solid rgba(190,55,0,.3)}
+.s-CR{background:rgba(190,0,0,.15);color:#e02828;border:1px solid rgba(190,0,0,.3)}
+.bg-mammals   {background:linear-gradient(135deg,#0e220a,#183818)}
+.bg-reptiles  {background:linear-gradient(135deg,#200e04,#381808)}
+.bg-birds     {background:linear-gradient(135deg,#060e28,#0e1e44)}
+.bg-fish      {background:linear-gradient(135deg,#021414,#063030)}
+.bg-insects   {background:linear-gradient(135deg,#141000,#282002)}
+.bg-amphibians{background:linear-gradient(135deg,#0e041c,#1c0838)}
+
+.empty-state{text-align:center;padding:4rem 2rem;color:var(--sub);font:1rem Arial,sans-serif}
+.empty-state .big{font-size:3.5rem;margin-bottom:.7rem}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);
+  display:flex;align-items:center;justify-content:center;z-index:1000;
+  padding:1rem;opacity:0;pointer-events:none;transition:opacity .22s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:#111c11;border:1px solid #2a422a;border-radius:16px;
+  max-width:620px;width:100%;max-height:90vh;overflow-y:auto;position:relative;
+  transform:scale(.94) translateY(10px);transition:transform .22s}
+.modal-overlay.open .modal{transform:scale(1) translateY(0)}
+.modal-close{position:absolute;top:.8rem;right:.8rem;background:rgba(255,255,255,.1);
+  border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;
+  font:.95rem Arial,sans-serif;line-height:30px;text-align:center;transition:background .15s;z-index:2}
+.modal-close:hover{background:rgba(255,255,255,.22)}
+.modal-hero{height:240px;position:relative;overflow:hidden;border-radius:16px 16px 0 0}
+.modal-hero img{width:100%;height:100%;object-fit:cover;display:block}
+.modal-hero .fallback-hero{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:7rem;z-index:0}
+.modal-hero img.loaded{position:absolute;inset:0;z-index:1}
+.modal-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(17,28,17,.9) 0%,transparent 55%);z-index:2}
+.modal-hero-title{position:absolute;bottom:1rem;left:1.4rem;z-index:3}
+.modal-hero-title h2{font-size:1.7rem;line-height:1.1;margin-bottom:.3rem}
+.modal-hero-title em{color:var(--sub);font:.88rem Arial,sans-serif}
+.modal-body{padding:1.2rem 1.5rem 1.8rem}
+.modal-badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.9rem}
+.modal-desc{font:.9rem/1.75 Georgia,serif;margin-bottom:1.1rem;color:#ccd8bb}
+.facts-head{font:bold .68rem Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;
+  color:var(--accent);margin-bottom:.5rem}
+.facts-list{list-style:none;margin-bottom:1rem}
+.facts-list li{display:flex;gap:.5rem;align-items:flex-start;padding:.36rem 0;
+  border-bottom:1px solid var(--border);font:.84rem/1.55 Arial,sans-serif;
+  opacity:0;transform:translateX(-8px);transition:opacity .3s,transform .3s}
+.facts-list li.visible{opacity:1;transform:none}
+.facts-list li:last-child{border-bottom:none}
+.facts-list li::before{content:'▸';color:var(--accent);flex-shrink:0;margin-top:1px}
+.habitat-section{margin-top:.8rem;padding:.8rem;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);border-radius:10px}
+.habitat-title{font:bold .68rem Arial,sans-serif;text-transform:uppercase;
+  letter-spacing:1px;color:var(--accent);margin-bottom:.4rem}
+.habitat-name{font:.82rem Arial,sans-serif;color:var(--sub);margin-bottom:.6rem}
+.habitat-btns{display:flex;gap:.5rem;flex-wrap:wrap}
+.habitat-btn{padding:.35rem .85rem;border-radius:20px;border:none;cursor:pointer;
+  font:.75rem Arial,sans-serif;font-weight:bold;display:flex;align-items:center;gap:.35rem;transition:transform .15s}
+.habitat-btn:hover{transform:translateY(-2px)}
+.hbtn-sat{background:rgba(19,66,26,.8);color:#90d890}
+.hbtn-sv{background:rgba(66,19,24,.8);color:#d89090}
+.modal-nav{display:flex;justify-content:space-between;margin-top:1.2rem;
+  padding-top:.8rem;border-top:1px solid var(--border)}
+.modal-nav button{padding:.4rem 1rem;background:transparent;border:1px solid var(--border);
+  color:var(--sub);font:.8rem Arial,sans-serif;border-radius:20px;cursor:pointer;transition:all .15s}
+.modal-nav button:hover{border-color:var(--accent);color:var(--accent)}
+
+@media(max-width:600px){
+  .cards-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem}
+  .card-photo,.card-overlay{height:130px}
+  #world-map{height:280px}
+  .biome-detail-map{height:220px}
+}
+</style>
+<script src="icons.js"></script>
+<link rel="stylesheet" href="theme.css"/>
+</head>
+<body>
+
+<header>
+  <div class="logo">Animal Explorer <span></span></div>
+  <div class="header-right">
+    <div class="ticker-wrap">
+      <span class="ticker-label">Did you know?</span>
+      <span id="ticker">Loading a wild fact…</span>
+    </div>
+    <div class="disc-badge" onclick="toggleDiscPanel()">
+      <span id="disc-count">0/60</span> explored
+    </div>
+  </div>
+</header>
+
+<div class="disc-panel" id="disc-panel">
+  <div class="disc-bar-wrap"><div class="disc-bar" id="disc-bar" style="width:0%"></div></div>
+  <p>You've explored <span id="disc-text">0</span> out of 60 animals. Keep discovering!</p>
+</div>
+
+<div class="controls">
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22" stroke-linecap="round"/></svg>
+    <input class="search-input" id="search-input" type="text" placeholder="Search animals, facts…" autocomplete="off"/>
+  </div>
+  <button class="pill active" data-cat="all">All</button>
+  <button class="pill" data-cat="mammals">🐘 Mammals</button>
+  <button class="pill" data-cat="reptiles">🐊 Reptiles</button>
+  <button class="pill" data-cat="birds">🦅 Birds</button>
+  <button class="pill" data-cat="fish">🦈 Fish</button>
+  <button class="pill" data-cat="insects">🦋 Insects</button>
+  <button class="pill" data-cat="amphibians">🐸 Amphibians</button>
+  <button class="surprise-btn" onclick="surpriseMe()">🎲 Surprise me!</button>
+</div>
+
+<div class="region-bar" id="region-bar">
+  <span style="font:.72rem Arial,sans-serif;color:var(--sub);white-space:nowrap">Filter continent:</span>
+  <button class="region-pill active" data-reg="all">🗺 All</button>
+  <button class="region-pill" data-reg="africa">Africa</button>
+  <button class="region-pill" data-reg="asia">Asia</button>
+  <button class="region-pill" data-reg="northAmerica">N. America</button>
+  <button class="region-pill" data-reg="southAmerica">S. America</button>
+  <button class="region-pill" data-reg="europe">Europe</button>
+  <button class="region-pill" data-reg="oceania">Oceania</button>
+</div>
+
+<!-- SATELLITE WORLD MAP -->
+<div class="map-section">
+  <div id="world-map"></div>
+</div>
+<p class="map-hint">🛰 Real satellite imagery · Click a continent label to zoom · Click animal pins to explore</p>
+
+<!-- BIOME EXPLORER -->
+<div class="biome-section">
+  <div class="section-title">🌿 Biome Explorer — Google Maps Walkthrough</div>
+  <div class="biome-scroll" id="biome-scroll"></div>
+  <div class="biome-detail" id="biome-detail">
+    <div id="biome-detail-map" class="biome-detail-map"></div>
+    <div class="biome-detail-body" id="biome-detail-body"></div>
+  </div>
+</div>
+
+<!-- ANIMAL RESULTS -->
+<section class="results-section">
+  <div class="results-header">
+    <h2 id="results-title">All Animals</h2>
+    <span id="results-count">60 animals</span>
+    <button id="reset-btn" style="display:none" onclick="resetAll()">✕ Clear filters</button>
+  </div>
+  <div class="cards-grid" id="cards-grid"></div>
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="big">🔭</div>No animals found. Try a different search or filter.
+  </div>
+</section>
+
+<!-- ANIMAL MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const REGION_NAMES={all:'All Regions',africa:'Africa',asia:'Asia',northAmerica:'North America',southAmerica:'South America',europe:'Europe',oceania:'Oceania'};
+const STATUS_CODE={'Least Concern':'LC','Near Threatened':'NT','Vulnerable':'VU','Endangered':'EN','Critically Endangered':'CR'};
+const CAT_BG={mammals:'linear-gradient(135deg,#0e220a,#183818)',reptiles:'linear-gradient(135deg,#1e0e04,#381404)',birds:'linear-gradient(135deg,#06101c,#0e1e3c)',fish:'linear-gradient(135deg,#021212,#062c2c)',insects:'linear-gradient(135deg,#121000,#242000)',amphibians:'linear-gradient(135deg,#0c0418,#180830)'};
+const REGION_CENTERS={africa:[5,22],asia:[34,100],northAmerica:[45,-95],southAmerica:[-15,-60],europe:[51,10],oceania:[-25,134]};
+const REGION_ZOOM={africa:4,asia:3,northAmerica:3,southAmerica:3,europe:4,oceania:3};
+
+// ─── ANIMAL DATA (60 animals) ─────────────────────────────────────────────────
+const ANIMALS=[
+  // AFRICA
+  {name:'African Elephant',scientific:'Loxodonta africana',emoji:'🐘',category:'mammals',region:'africa',status:'Vulnerable',wiki:'African_bush_elephant',lat:-2.64,lon:37.26,habitatName:'Amboseli, Kenya',
+   description:'The largest land animal on Earth, living in matriarch-led herds renowned for their extraordinary memory, deep family bonds, and complex emotional lives.',
+   facts:['Largest land animal — up to 6 tonnes and 3.3 m tall','Trunks have over 40,000 muscles and can lift 350 kg','Communicate via infrasound too low for humans to hear','Grieve their dead and revisit bones of family members','Drink up to 200 litres of water per day']},
+
+  {name:'Lion',scientific:'Panthera leo',emoji:'🦁',category:'mammals',region:'africa',status:'Vulnerable',wiki:'Lion',lat:-1.50,lon:35.10,habitatName:'Masai Mara, Kenya',
+   description:'The only cats that live in social groups, lions rule the African savannah in cooperative prides where females do most of the hunting.',
+   facts:['Only cats that naturally live in groups called prides','A roar can be heard from 8 km away','Females do 85–90% of all hunting','Sleep up to 20 hours a day to conserve energy','A male\'s mane darkens with age, signalling dominance']},
+
+  {name:'Cheetah',scientific:'Acinonyx jubatus',emoji:'🐆',category:'mammals',region:'africa',status:'Vulnerable',wiki:'Cheetah',lat:-2.33,lon:34.83,habitatName:'Serengeti, Tanzania',
+   description:'The fastest land animal alive reaches 112 km/h in explosive sprints, and sacrifices strength for speed — making it unique among big cats.',
+   facts:['Fastest land animal — bursts up to 112 km/h in 3 seconds','Non-retractable claws grip the ground like running spikes','Cannot roar — chirps, purrs and yelps instead','Only big cat active primarily in daylight hours','Loses up to 50% of kills to stronger predators']},
+
+  {name:'Giraffe',scientific:'Giraffa camelopardalis',emoji:'🦒',category:'mammals',region:'africa',status:'Vulnerable',wiki:'Giraffe',lat:-2.71,lon:37.35,habitatName:'Amboseli National Park',
+   description:'The world\'s tallest animal uses its extraordinary neck not only to browse treetops but also to deliver devastating kicks and engage in "necking" battles.',
+   facts:['Tallest animal on Earth — up to 5.7 m','Heart weighs 11 kg and beats 170 times per minute','A single kick can kill a lion','Sleeps only 20 minutes a day in short bursts','No two giraffes share the same spot pattern']},
+
+  {name:'Mountain Gorilla',scientific:'Gorilla beringei beringei',emoji:'🦍',category:'mammals',region:'africa',status:'Endangered',wiki:'Mountain_gorilla',lat:-1.48,lon:29.52,habitatName:'Virunga Mountains, Rwanda',
+   description:'One of our closest relatives, mountain gorillas live in tight family groups in the misty volcanic highlands of central Africa — a remarkable conservation success story.',
+   facts:['Share 98.3% of human DNA','A silverback\'s chest beat can be heard 1 km away','Populations have grown thanks to intensive conservation','Build a fresh nest of branches to sleep in every night','Eat up to 34 kg of vegetation per day']},
+
+  {name:'Hippopotamus',scientific:'Hippopotamus amphibius',emoji:'🦛',category:'mammals',region:'africa',status:'Vulnerable',wiki:'Hippopotamus',lat:4.00,lon:32.50,habitatName:'Nile River, Uganda',
+   description:'Despite their plant-eating diet, hippos are the most dangerous large land animal in Africa — fiercely territorial and surprisingly fast on land.',
+   facts:['Responsible for more human deaths in Africa than any other large animal','Can run at 30 km/h on land — faster than most humans','Skin secretes a natural sunscreen and antibiotic called "blood sweat"','Spend up to 16 hours a day submerged to stay cool','Closest living relatives are whales and dolphins']},
+
+  {name:'Nile Crocodile',scientific:'Crocodylus niloticus',emoji:'🐊',category:'reptiles',region:'africa',status:'Least Concern',wiki:'Nile_crocodile',lat:24.09,lon:32.90,habitatName:'Nile Delta, Egypt',
+   description:'Africa\'s largest predator, virtually unchanged for 200 million years, holds the record for the most powerful bite of any living animal.',
+   facts:['Strongest bite force ever recorded — 22,000 Newtons','Can hold their breath for up to 2 hours','Females carry hatchlings to water in their mouths','Virtually unchanged for over 200 million years','Can go months without eating after a large kill']},
+
+  {name:'Ostrich',scientific:'Struthio camelus',emoji:'🦩',category:'birds',region:'africa',status:'Least Concern',wiki:'Common_ostrich',lat:11.00,lon:15.00,habitatName:'Sahel Savanna, Chad',
+   description:'The world\'s largest bird cannot fly but is the fastest two-legged animal on Earth, capable of sustained 70 km/h sprints.',
+   facts:['Largest and heaviest bird — up to 156 kg','Fastest running bird: sustained 70 km/h over distance','Eyes (5 cm diameter) are larger than their brain','A single egg weighs as much as 24 chicken eggs','Ostriches do NOT bury their heads in the sand — pure myth']},
+
+  {name:'Goliath Beetle',scientific:'Goliathus goliatus',emoji:'🪲',category:'insects',region:'africa',status:'Least Concern',wiki:'Goliath_beetle',lat:1.00,lon:15.00,habitatName:'Congo Rainforest, DRC',
+   description:'One of the heaviest insects alive, found in Central African rainforests where males joust in trees with their Y-shaped horns.',
+   facts:['One of the world\'s heaviest insects — adults up to 100 g','Larvae weigh up to 150 g — heavier than the adult','Males use Y-shaped horns to wrestle rivals off branches','Despite their bulk, they are powerful fliers','Feed on rotting wood, tree sap, and fruit']},
+
+  {name:'African Bullfrog',scientific:'Pyxicephalus adspersus',emoji:'🐸',category:'amphibians',region:'africa',status:'Least Concern',wiki:'African_bullfrog',lat:-20.00,lon:23.00,habitatName:'Kalahari, Botswana',
+   description:'A giant among frogs where males are unusually larger than females, and fiercely protective fathers guard their tadpoles against any predator — even lions.',
+   facts:['One of Africa\'s largest frogs — up to 2.3 kg','Males are bigger than females — rare among amphibians','Survive dry seasons buried in a mucus cocoon underground','Fathers will chase off snakes and even lions from tadpoles','Will eat almost anything: insects, rodents, snakes, other frogs']},
+
+  // ASIA
+  {name:'Bengal Tiger',scientific:'Panthera tigris tigris',emoji:'🐅',category:'mammals',region:'asia',status:'Endangered',wiki:'Bengal_tiger',lat:21.95,lon:89.18,habitatName:'Sundarbans, India',
+   description:'The national animal of India and Bangladesh, Bengal tigers are solitary apex predators with stripe patterns as unique as human fingerprints.',
+   facts:['No two tigers share the same stripe pattern','Excellent swimmers — they actively seek out water to hunt','A roar carries up to 3 km through dense jungle','Saliva has mild antiseptic properties — they lick wounds','A tiger\'s territory can span over 100 km²']},
+
+  {name:'Giant Panda',scientific:'Ailuropoda melanoleuca',emoji:'🐼',category:'mammals',region:'asia',status:'Vulnerable',wiki:'Giant_panda',lat:33.85,lon:107.60,habitatName:'Qinling Mountains, China',
+   description:'A conservation icon that spends up to 16 hours a day eating bamboo to fuel a body not designed for an all-plant diet.',
+   facts:['Eat 12–38 kg of bamboo every single day','Have a "false thumb" — an enlarged wrist bone for gripping bamboo','Wild population has recovered to over 1,800','Newborns weigh just 100 g — 1/900th of the mother\'s weight','Despite their diet, they are classified as carnivores']},
+
+  {name:'Snow Leopard',scientific:'Panthera uncia',emoji:'🐱',category:'mammals',region:'asia',status:'Vulnerable',wiki:'Snow_leopard',lat:27.90,lon:86.90,habitatName:'Himalayas, Nepal',
+   description:'The "ghost of the mountains" is so elusive that scientists have never managed a complete count of the wild population.',
+   facts:['Tail is nearly as long as their body — used for balance and warmth','Can leap 15 m horizontally and 6 m vertically','Cannot roar — makes a unique chuffing sound called prusten','Paws act as natural snowshoes — broad and well-furred','Estimated 4,000–6,500 remain in the wild across 12 countries']},
+
+  {name:'Komodo Dragon',scientific:'Varanus komodoensis',emoji:'🦎',category:'reptiles',region:'asia',status:'Endangered',wiki:'Komodo_dragon',lat:-8.55,lon:119.48,habitatName:'Komodo Island, Indonesia',
+   description:'The world\'s largest lizard ambushes prey as large as water buffalo using venom that prevents clotting — found only on five Indonesian islands.',
+   facts:['World\'s largest lizard — up to 3 m and 70 kg','Detects prey from 9 km using a forked tongue','Females can reproduce without males via parthenogenesis','Can eat 80% of body weight in a single meal','Venom glands prevent prey\'s blood from clotting']},
+
+  {name:'Red Panda',scientific:'Ailurus fulgens',emoji:'🐾',category:'mammals',region:'asia',status:'Endangered',wiki:'Red_panda',lat:27.50,lon:88.50,habitatName:'Eastern Himalayas, Nepal',
+   description:'Unrelated to the giant panda, the red panda is the sole member of its own family — a secretive tree-dwelling mammal of the eastern Himalayas.',
+   facts:['Not related to the giant panda — a family of its own','Has a false thumb (extended wrist bone) for gripping bamboo','Spends most of its life high in trees','Uses its long bushy tail as a blanket in cold weather','Active at dawn and dusk; sleeps curled up in trees by day']},
+
+  {name:'King Cobra',scientific:'Ophiophagus hannah',emoji:'🐍',category:'reptiles',region:'asia',status:'Vulnerable',wiki:'King_cobra',lat:11.00,lon:76.00,habitatName:'Western Ghats, India',
+   description:'The world\'s longest venomous snake can raise a third of its body and look a human in the eye — its Latin name means "snake-eater".',
+   facts:['World\'s longest venomous snake — up to 5.5 m','Feeds almost entirely on other snakes, including pythons','One bite delivers enough venom to kill an elephant','The only snake species that builds a nest for its eggs','Can raise a third of its body off the ground when threatened']},
+
+  {name:'Japanese Macaque',scientific:'Macaca fuscata',emoji:'🐒',category:'mammals',region:'asia',status:'Least Concern',wiki:'Japanese_macaque',lat:36.74,lon:138.20,habitatName:'Jigokudani, Nagano, Japan',
+   description:'Snow monkeys are the world\'s most northerly non-human primates, famous for bathing in volcanic hot springs and passing cultural behaviours across generations.',
+   facts:['Most northerly non-human primate on Earth','Bathe in volcanic hot springs during snowy winters','Wash food before eating — a learned cultural behaviour','Troops develop unique local traditions passed through generations','Red faces intensify in colour during excitement or cold']},
+
+  {name:'Proboscis Monkey',scientific:'Nasalis larvatus',emoji:'🐒',category:'mammals',region:'asia',status:'Endangered',wiki:'Proboscis_monkey',lat:5.41,lon:118.01,habitatName:'Kinabatangan River, Borneo',
+   description:'Found only in Borneo\'s mangrove forests, the proboscis monkey is famous for its enormous pendulous nose, which amplifies calls and attracts mates.',
+   facts:['Endemic to Borneo — found nowhere else on Earth','A male\'s nose can grow over 10 cm long','The large nose amplifies calls and regulates body temperature','Excellent swimmers — can cross wide rivers easily','Population has declined 50% in the last 40 years']},
+
+  {name:'Asian Elephant',scientific:'Elephas maximus',emoji:'🐘',category:'mammals',region:'asia',status:'Endangered',wiki:'Asian_elephant',lat:7.97,lon:80.82,habitatName:'Minneriya, Sri Lanka',
+   description:'The largest land animal in Asia has been revered in culture, religion, and warfare for thousands of years and is critical to forest ecosystems.',
+   facts:['Smaller ears than African elephants — shaped like the Indian subcontinent','Only some males grow tusks, unlike African elephants','Have been domesticated for over 4,000 years','Memory is exceptional — recognise hundreds of individuals over decades','A keystone species whose feeding creates forest clearings']},
+
+  {name:'Chinese Giant Salamander',scientific:'Andrias davidianus',emoji:'🫧',category:'amphibians',region:'asia',status:'Critically Endangered',wiki:'Chinese_giant_salamander',lat:30.60,lon:114.30,habitatName:'Yangtze River, China',
+   description:'The world\'s largest amphibian is a living fossil virtually unchanged for 170 million years, now critically endangered due to hunting and habitat loss.',
+   facts:['World\'s largest amphibian — up to 1.8 m and 50 kg','Can live for over 60 years','Nearly blind; hunts by sensing water vibrations through skin','Exudes a sticky, pepper-scented secretion as defence','Virtually unchanged for 170 million years']},
+
+  // NORTH AMERICA
+  {name:'Grizzly Bear',scientific:'Ursus arctos horribilis',emoji:'🐻',category:'mammals',region:'northAmerica',status:'Least Concern',wiki:'Grizzly_bear',lat:44.43,lon:-110.59,habitatName:'Yellowstone, Wyoming',
+   description:'One of North America\'s most powerful animals, grizzlies are surprisingly gentle omnivores — up to 80% of their diet is plants, berries, and insects.',
+   facts:['Can smell food from over 29 km away','Run at 55 km/h — faster than a racehorse over short distances','Shoulder hump is solid muscle used for powerful digging','Eat 20,000 calories a day before winter hibernation','80% of their diet is plants, berries, and insects']},
+
+  {name:'American Alligator',scientific:'Alligator mississippiensis',emoji:'🐊',category:'reptiles',region:'northAmerica',status:'Least Concern',wiki:'American_alligator',lat:25.51,lon:-80.93,habitatName:'Everglades, Florida',
+   description:'A conservation triumph: once nearly hunted to extinction, strict protections revived populations to over 1 million across the southeastern United States.',
+   facts:['Recovered from near-extinction — a landmark conservation success','Nest temperature determines the sex of every hatchling','Females carry hatchlings to water in their mouths','Surprisingly agile on land; can sprint short distances','Bite force exceeds that of a lion or tiger']},
+
+  {name:'Bald Eagle',scientific:'Haliaeetus leucocephalus',emoji:'🦅',category:'birds',region:'northAmerica',status:'Least Concern',wiki:'Bald_eagle',lat:58.30,lon:-134.42,habitatName:'Inside Passage, Alaska',
+   description:'The national symbol of the United States was rescued from the brink of extinction and is now one of history\'s greatest conservation success stories.',
+   facts:['Wingspan can reach 2.4 metres','Can spot prey from over 3 km away','Mate for life and return to the same nest every year','Nests can weigh over a tonne after decades of additions','Named from Old English "balde" meaning white-headed']},
+
+  {name:'Monarch Butterfly',scientific:'Danaus plexippus',emoji:'🦋',category:'insects',region:'northAmerica',status:'Endangered',wiki:'Monarch_butterfly',lat:19.62,lon:-100.25,habitatName:'Monarch Reserve, Michoacán',
+   description:'Monarchs perform one of Earth\'s great migrations — flying up to 4,800 km from Canada to Mexican mountains, navigating by a sun compass in their antennae.',
+   facts:['Migrates up to 4,800 km from Canada to central Mexico','Navigates using a time-compensated sun compass in antennae','Milkweed toxins in diet make them poisonous to birds','A complete migration cycle takes 3–4 generations of butterflies','Populations have declined over 80% in recent decades']},
+
+  {name:'American Bison',scientific:'Bison bison',emoji:'🦬',category:'mammals',region:'northAmerica',status:'Near Threatened',wiki:'American_bison',lat:43.75,lon:-102.49,habitatName:'Badlands, South Dakota',
+   description:'Once numbering 60 million, American bison were nearly wiped out and are now the USA\'s national mammal — a symbol of conservation recovery.',
+   facts:['Once roamed in herds 60 million strong across North America','Reduced to fewer than 1,000 animals by 1890; now 500,000','Can run at 65 km/h despite weighing up to 900 kg','Despite their bulk, can jump fences over 1.5 m high','Their wallows create wetland habitats for other species']},
+
+  {name:'Gray Wolf',scientific:'Canis lupus',emoji:'🐺',category:'mammals',region:'northAmerica',status:'Least Concern',wiki:'Gray_wolf',lat:44.80,lon:-110.55,habitatName:'Yellowstone, Wyoming',
+   description:'The apex predator whose reintroduction to Yellowstone sparked a trophic cascade that literally changed the course of rivers — the power of keystone species.',
+   facts:['Yellowstone reintroduction reshaped entire river systems','Pack territories can span up to 1,000 km²','Howls can be heard from 16 km away in open terrain','Mate for life; both parents raise pups','Can travel 200 km in a single day when tracking prey']},
+
+  {name:'Great White Shark',scientific:'Carcharodon carcharias',emoji:'🦈',category:'fish',region:'northAmerica',status:'Vulnerable',wiki:'Great_white_shark',lat:37.70,lon:-123.00,habitatName:'Farallon Islands, California',
+   description:'The ocean\'s most iconic apex predator is more threatened by humans than the reverse — and is crucial to marine ecosystem balance.',
+   facts:['Can detect blood diluted to 1 part per 10 million','Skin is covered in tooth-like scales called denticles','Can live for over 70 years — far longer than once thought','Can leap completely clear of the water when attacking prey','5–7 rows of teeth; a lost tooth regrows within days']},
+
+  {name:'American Bullfrog',scientific:'Lithobates catesbeianus',emoji:'🐸',category:'amphibians',region:'northAmerica',status:'Least Concern',wiki:'American_bullfrog',lat:29.95,lon:-90.07,habitatName:'Mississippi Delta, Louisiana',
+   description:'North America\'s largest native frog is a voracious predator that will eat almost anything — other frogs, snakes, small birds, even bats.',
+   facts:['Largest frog in North America — up to 20 cm','Call carries up to 1 km on a still night','Tadpoles take up to 2 full years to metamorphose','Now a destructive invasive species on 4 continents','Will swallow prey nearly half their own body size']},
+
+  {name:'California Condor',scientific:'Gymnogyps californianus',emoji:'🦅',category:'birds',region:'northAmerica',status:'Critically Endangered',wiki:'California_condor',lat:36.10,lon:-112.10,habitatName:'Grand Canyon, Arizona',
+   description:'North America\'s largest land bird was reduced to just 27 individuals in 1987, making it the subject of the most intensive captive-breeding programme in history.',
+   facts:['Wingspan of 3 m — largest of any North American land bird','Reduced to just 27 birds in 1987; now over 500','Can soar for hours without a wingbeat, using thermals','Lifespan of 60 years — one of the longest-lived birds','Soar to 4,600 m altitude while foraging']},
+
+  {name:'Wolverine',scientific:'Gulo gulo',emoji:'🦡',category:'mammals',region:'northAmerica',status:'Least Concern',wiki:'Wolverine_(animal)',lat:48.50,lon:-113.60,habitatName:'Glacier National Park, Montana',
+   description:'The largest land-dwelling weasel family member is pound for pound one of nature\'s most ferocious animals, known to drive grizzly bears from their kills.',
+   facts:['Pound for pound, one of the most ferocious animals alive','Known to drive grizzly bears and mountain lions from kills','Travel up to 45 km per day through deep snow','Semi-retractable claws act as crampons on ice','Scent glands so powerful it earned the name "skunk bear"']},
+
+  // SOUTH AMERICA
+  {name:'Jaguar',scientific:'Panthera onca',emoji:'🐆',category:'mammals',region:'southAmerica',status:'Near Threatened',wiki:'Jaguar',lat:3.00,lon:-63.00,habitatName:'Amazon Basin, Brazil',
+   description:'The Americas\' largest cat kills with a unique crushing bite directly to the skull, and unlike most big cats is an enthusiastic swimmer that actively hunts in rivers.',
+   facts:['Strongest bite of any big cat relative to body size','Kills with a crushing bite directly to the skull — unique technique','Excellent swimmers that actively hunt caimans and fish','Rosette spots contain smaller inner spots, unlike leopards','Sacred in many Mesoamerican cultures as a symbol of power']},
+
+  {name:'Green Anaconda',scientific:'Eunectes murinus',emoji:'🐍',category:'reptiles',region:'southAmerica',status:'Least Concern',wiki:'Green_anaconda',lat:-5.00,lon:-60.00,habitatName:'Llanos Wetlands, Venezuela',
+   description:'The world\'s heaviest snake lurks in South American swamps, ambushing prey as large as caimans and tapirs, killing entirely by constriction.',
+   facts:['World\'s heaviest snake — over 250 kg and up to 8 m long','Can go over a year without eating after a large meal','Gives birth to live young — up to 40 at once','Eyes and nostrils sit atop the head for aquatic ambush','Not venomous — kills entirely by constriction']},
+
+  {name:'Capybara',scientific:'Hydrochoerus hydrochaeris',emoji:'🐾',category:'mammals',region:'southAmerica',status:'Least Concern',wiki:'Capybara',lat:-16.00,lon:-57.00,habitatName:'Pantanal, Brazil',
+   description:'The world\'s largest rodent is remarkably sociable and serves as a natural "host" — birds, monkeys, and caimans often rest on their calm backs.',
+   facts:['World\'s largest rodent — up to 66 kg','Highly sociable — live in groups of 10 to 100','Semi-aquatic: webbed toes, nostrils on top of snout','Can hold their breath for up to 5 minutes','Acts as a host for birds and other animals who hitch rides']},
+
+  {name:'Giant Anteater',scientific:'Myrmecophaga tridactyla',emoji:'🐜',category:'mammals',region:'southAmerica',status:'Vulnerable',wiki:'Giant_anteater',lat:-15.00,lon:-49.00,habitatName:'Cerrado, Brazil',
+   description:'The giant anteater has no teeth yet consumes 35,000 ants and termites per day with its extraordinary 60 cm tongue.',
+   facts:['60 cm tongue flicks in and out 150 times per minute','No teeth — grinds insects with a tough muscular stomach','Eats 35,000 ants and termites every single day','Claws so powerful it must walk on its knuckles','Carries its young on its back for up to a year']},
+
+  {name:'Scarlet Macaw',scientific:'Ara macao',emoji:'🦜',category:'birds',region:'southAmerica',status:'Least Concern',wiki:'Scarlet_macaw',lat:-5.00,lon:-65.00,habitatName:'Amazon Rainforest, Peru',
+   description:'One of the world\'s most brilliantly coloured birds, scarlet macaws form lifelong pair bonds and are rarely seen more than a metre from their mate.',
+   facts:['Can live up to 75 years in captivity','Mate for life and are almost never seen alone','Powerful beaks can crack the hardest tropical nuts','Can mimic human speech with surprising clarity','Bright colours come from carotenoid pigments in their diet']},
+
+  {name:'Harpy Eagle',scientific:'Harpia harpyja',emoji:'🦅',category:'birds',region:'southAmerica',status:'Vulnerable',wiki:'Harpy_eagle',lat:-2.00,lon:-56.00,habitatName:'Amazon Canopy, Brazil',
+   description:'The harpy eagle is the most powerful bird of prey in the Americas, with talons larger than a grizzly bear\'s claws.',
+   facts:['Talons longer than a grizzly bear\'s claws — up to 13 cm','Can fly at 80 km/h between dense rainforest trees','Preferred prey is sloths and monkeys seized from the canopy','A pair raises only one chick every 2–3 years','One of the largest eagles in the world by mass']},
+
+  {name:'Poison Dart Frog',scientific:'Dendrobates tinctorius',emoji:'🐸',category:'amphibians',region:'southAmerica',status:'Least Concern',wiki:'Poison_dart_frog',lat:5.00,lon:-76.00,habitatName:'Colombian Pacific Rainforest',
+   description:'Among the most toxic animals alive, yet tiny. Their vivid colours warn predators, and captive-bred frogs raised on different diets are completely harmless.',
+   facts:['Some species carry enough toxin to kill 10 adult humans','Bright colours serve as a warning to predators','Toxins come entirely from the wild insects they eat','Indigenous peoples used skin secretions to poison blow-darts','Captive-bred frogs on alternative diets are non-toxic']},
+
+  {name:'Blue Morpho Butterfly',scientific:'Morpho peleides',emoji:'🦋',category:'insects',region:'southAmerica',status:'Least Concern',wiki:'Blue_morpho_butterfly',lat:9.00,lon:-83.00,habitatName:'Costa Rican Rainforest',
+   description:'The blue morpho\'s wings produce colour not through pigment but through microscopic nanostructures that diffract light into vivid iridescence.',
+   facts:['Wingspan up to 20 cm — among the world\'s largest butterflies','Blue colour is structural, produced by nanostructures — not pigment','Wings flash iridescent blue then camouflage brown when flapping','Adults drink juice from rotting fruit, not flower nectar','Caterpillars are surprisingly cannibalistic when crowded']},
+
+  {name:'Red-bellied Piranha',scientific:'Pygocentrus nattereri',emoji:'🐟',category:'fish',region:'southAmerica',status:'Least Concern',wiki:'Red-bellied_piranha',lat:-3.00,lon:-60.00,habitatName:'Amazon River, Brazil',
+   description:'The piranha\'s man-eating reputation is mostly mythology. These fish are vital scavengers in Amazonian ecosystems, though their teeth are genuinely razor-sharp.',
+   facts:['Sharpest teeth of any fish — interlocking triangular blades','Mass human attacks are largely folklore and well-documented cases are rare','Jaws exert 30× more force per body weight than a great white','Can detect blood diluted in 200 litres of water','Play a crucial ecological role as river scavengers']},
+
+  {name:'Amazon River Dolphin',scientific:'Inia geoffrensis',emoji:'🐬',category:'mammals',region:'southAmerica',status:'Endangered',wiki:'Amazon_river_dolphin',lat:-3.10,lon:-60.02,habitatName:'Rio Negro, Amazon, Brazil',
+   description:'The largest freshwater dolphin and the only naturally pink one, the boto navigates flooded Amazonian forests using echolocation sophisticated enough to detect fish in leaf litter.',
+   facts:['World\'s largest river dolphin — up to 2.5 m and 185 kg','Adults are pink due to scar tissue from social interactions','Echolocation can detect objects behind and beneath obstacles','Can turn their head 180° — spinal vertebrae are unfused','Featured in Amazonian mythology as a shape-shifting trickster']},
+
+  // EUROPE
+  {name:'Red Fox',scientific:'Vulpes vulpes',emoji:'🦊',category:'mammals',region:'europe',status:'Least Concern',wiki:'Red_fox',lat:51.50,lon:-1.80,habitatName:'English Countryside, UK',
+   description:'The world\'s most widely distributed wild carnivore thrives from Arctic tundra to city centres. Their intelligence and adaptability make them nature\'s ultimate generalist.',
+   facts:['Most widely distributed wild carnivore on Earth','Can hear a watch ticking from 36 metres away','Use Earth\'s magnetic field to pinpoint prey beneath snow','Can run at 50 km/h and leap over 2 m high','A male is a "dog fox", female a "vixen", baby a "kit"']},
+
+  {name:'European Adder',scientific:'Vipera berus',emoji:'🐍',category:'reptiles',region:'europe',status:'Least Concern',wiki:'Common_European_adder',lat:57.00,lon:-4.00,habitatName:'Scottish Highlands, Scotland',
+   description:'Britain\'s only venomous snake is also the world\'s most widespread viper, ranging from the UK all the way to the Pacific coast of Russia.',
+   facts:['Britain\'s only venomous snake','The only snake known to live within the Arctic Circle','Gives birth to live young rather than laying eggs','Hibernates for up to 6 months in cold northern winters','Distinctive zigzag pattern provides superb camouflage']},
+
+  {name:'White Stork',scientific:'Ciconia ciconia',emoji:'🦢',category:'birds',region:'europe',status:'Least Concern',wiki:'White_stork',lat:48.60,lon:7.75,habitatName:'Alsace, France',
+   description:'One of Europe\'s most beloved migratory birds, storks return to the same rooftop nest every year after a 20,000 km round-trip to sub-Saharan Africa.',
+   facts:['Migrates up to 20,000 km round-trip to sub-Saharan Africa','Pairs return to the same nest year after year for life','Cannot sing — communicates by loud bill-clattering','A nest used for decades can weigh several hundred kg','European folklore credits them with delivering newborn babies']},
+
+  {name:'Fire Salamander',scientific:'Salamandra salamandra',emoji:'🦎',category:'amphibians',region:'europe',status:'Least Concern',wiki:'Fire_salamander',lat:48.00,lon:8.20,habitatName:'Black Forest, Germany',
+   description:'Europe\'s most recognisable amphibian, whose bold yellow-and-black pattern advertises toxic skin secretions that inspired centuries of myths about creatures born from flames.',
+   facts:['Yellow and black colouring warns predators of skin toxicity','Gives birth to live larvae — not eggs like most salamanders','Supposedly emerged from burning logs — hence "fire salamander"','Skin glands secrete alkaloids that paralyse predators\' muscles','Can live for over 50 years in captivity']},
+
+  {name:'Stag Beetle',scientific:'Lucanus cervus',emoji:'🪲',category:'insects',region:'europe',status:'Near Threatened',wiki:'Stag_beetle',lat:50.88,lon:-1.60,habitatName:'New Forest, England',
+   description:'Europe\'s largest beetle, named for spectacular antler-like mandibles that males use in elaborate wrestling matches over mating rights — not for feeding.',
+   facts:['Europe\'s largest beetle — up to 8 cm long','Enormous mandibles are for wrestling rivals, not for feeding','Larvae spend 3–7 years underground before emerging','Adult beetles live only a few weeks and barely feed','Larvae eat decaying wood, playing a key role in nutrient cycling']},
+
+  {name:'Atlantic Cod',scientific:'Gadus morhua',emoji:'🐟',category:'fish',region:'europe',status:'Vulnerable',wiki:'Atlantic_cod',lat:57.00,lon:2.00,habitatName:'North Sea',
+   description:'Once so abundant it could be scooped from the sea in baskets, Atlantic cod fed European civilisation for centuries — until industrial overfishing collapsed stocks by over 95%.',
+   facts:['Once so plentiful it was scooped from the sea in baskets','A single female produces up to 9 million eggs per year','Populations have collapsed by over 95% due to overfishing','Can live 25+ years and grow to nearly 2 m in length','Their collapse is history\'s defining case study in fisheries failure']},
+
+  {name:'Brown Bear',scientific:'Ursus arctos',emoji:'🐻',category:'mammals',region:'europe',status:'Least Concern',wiki:'Brown_bear',lat:45.68,lon:25.30,habitatName:'Carpathian Mountains, Romania',
+   description:'Europe\'s largest land predator roams Scandinavian and Carpathian forests, with populations slowly recovering after centuries of persecution.',
+   facts:['Europe\'s largest land predator — up to 360 kg','Despite size, can sprint at 50 km/h over short distances','Remarkable swimmers — cross lakes several kilometres wide','Eat up to 20,000 calories per day before hibernation','European populations recovering in Finland, Romania, and Sweden']},
+
+  {name:'Peregrine Falcon',scientific:'Falco peregrinus',emoji:'🦅',category:'birds',region:'europe',status:'Least Concern',wiki:'Peregrine_falcon',lat:46.80,lon:8.00,habitatName:'Swiss Alps',
+   description:'The fastest animal on the planet in a stoop dive, the peregrine falcon reaches over 320 km/h when striking prey — and has adapted to hunt over every major city.',
+   facts:['Fastest animal on Earth in a dive — over 320 km/h recorded','A 3rd eyelid protects eyes during high-speed dives','Hunts birds by striking them mid-air at lethal speed','Nests on cliff ledges and increasingly on city skyscrapers','Nearly wiped out by DDT; recovered after the pesticide was banned']},
+
+  {name:'Eurasian Lynx',scientific:'Lynx lynx',emoji:'🐱',category:'mammals',region:'europe',status:'Least Concern',wiki:'Eurasian_lynx',lat:49.00,lon:13.40,habitatName:'Bavarian Forest, Germany',
+   description:'Europe\'s largest wild cat was once extinct across most of the continent and is slowly recolonising forests through careful reintroduction programmes.',
+   facts:['Europe\'s largest wild cat — up to 30 kg','Large padded paws act as natural snowshoes','Can leap 6 m onto unsuspecting prey from a standing start','Largely silent — communicates by scent and facial expressions','Reintroduced in Germany, Switzerland, France, and Scotland']},
+
+  {name:'Common Octopus',scientific:'Octopus vulgaris',emoji:'🐙',category:'fish',region:'europe',status:'Least Concern',wiki:'Common_octopus',lat:42.00,lon:14.00,habitatName:'Mediterranean Sea, Italy',
+   description:'One of the most intelligent invertebrates alive, the common octopus can open jars, use tools, play, and change colour and texture in milliseconds to become invisible.',
+   facts:['Three hearts, blue blood, and nine brains (one central + one per arm)','Can change colour and skin texture in under 300 milliseconds','Demonstrated use of tools — carries coconut shells for shelter','Each arm has independent neural processing capability','Adults die after a single reproductive cycle']},
+
+  // OCEANIA
+  {name:'Red Kangaroo',scientific:'Osphranter rufus',emoji:'🦘',category:'mammals',region:'oceania',status:'Least Concern',wiki:'Red_kangaroo',lat:-25.00,lon:133.00,habitatName:'Australian Outback, NT',
+   description:'The world\'s largest marsupial and Australia\'s largest native land mammal, perfectly adapted to arid environments through their uniquely energy-efficient hopping gait.',
+   facts:['World\'s largest marsupial — up to 90 kg','Newborns are the size of a jellybean and climb unaided to the pouch','Can hop at 70 km/h — and sustain 40 km/h for hours','Cannot walk backwards — hence they appear on Australia\'s coat of arms','Muscular tail acts as a fifth limb for balance and support']},
+
+  {name:'Saltwater Crocodile',scientific:'Crocodylus porosus',emoji:'🐊',category:'reptiles',region:'oceania',status:'Least Concern',wiki:'Saltwater_crocodile',lat:-12.51,lon:130.84,habitatName:'Kakadu, Northern Territory',
+   description:'The world\'s largest living reptile can swim thousands of kilometres across open ocean and holds the record for the strongest bite ever measured in a living animal.',
+   facts:['World\'s largest living reptile — up to 6 m and 1,000 kg','Strongest bite ever measured in a living animal — 16,000 N','Spotted swimming 900 km from the nearest shore in open ocean','Despite appearances, females are devoted nest-guarders','Can survive months without food after a large meal']},
+
+  {name:'Quokka',scientific:'Setonix brachyurus',emoji:'🦘',category:'mammals',region:'oceania',status:'Vulnerable',wiki:'Quokka',lat:-32.00,lon:115.52,habitatName:'Rottnest Island, Western Australia',
+   description:'The so-called "world\'s happiest animal" is a small marsupial found almost exclusively on Rottnest Island, where isolation from predators has made it famously fearless.',
+   facts:['Facial anatomy creates a permanent expression resembling a smile','Dutch sailors named Rottnest Island ("rats\' nest") after mistaking them for rats','Can survive without water for long periods by metabolising fat','Mothers can temporarily pause a developing embryo if conditions worsen','Vulnerable to foxes and cats on the mainland']},
+
+  {name:'Platypus',scientific:'Ornithorhynchus anatinus',emoji:'🦫',category:'mammals',region:'oceania',status:'Near Threatened',wiki:'Platypus',lat:-42.00,lon:147.00,habitatName:'Tasmanian Highlands, Australia',
+   description:'So bizarre that when the first specimen reached Europe, scientists thought it was a hoax — a duck-billed, beaver-tailed mammal that lays eggs and hunts with electrolocation.',
+   facts:['One of only five mammals that lay eggs (monotremes)','Males have venomous spurs on their hind legs','Hunts entirely by electrolocation — detects prey\'s electrical fields','Closes eyes, ears and nose underwater — hunts purely by electroreception','Has 10 sex chromosomes — humans have 2']},
+
+  {name:'Tasmanian Devil',scientific:'Sarcophilus harrisii',emoji:'🦡',category:'mammals',region:'oceania',status:'Endangered',wiki:'Tasmanian_devil',lat:-42.50,lon:146.50,habitatName:'Tasmania, Australia',
+   description:'The world\'s largest carnivorous marsupial is famous for its bone-crushing bite and blood-curdling screams, and is fighting extinction from a contagious facial tumour disease.',
+   facts:['World\'s largest carnivorous marsupial','Bite is proportionally the strongest of any mammal','Bone-crunching feeding accompanied by blood-curdling screams','Can eat 40% of body weight in a single feeding session','Devil Facial Tumour Disease has killed over 80% of wild individuals']},
+
+  {name:'Laughing Kookaburra',scientific:'Dacelo novaeguineae',emoji:'🐦',category:'birds',region:'oceania',status:'Least Concern',wiki:'Laughing_kookaburra',lat:-27.50,lon:153.00,habitatName:'Queensland Bushland, Australia',
+   description:'Australia\'s iconic bird is famous for its raucous call — so convincingly human that it\'s used in jungle film soundtracks. Despite being a kingfisher, it hunts on land.',
+   facts:['Call sounds so human it is used in jungle film soundtracks worldwide','Uses "laughter" to establish territory, not to express amusement','A kingfisher that hunts snakes, lizards, and rodents — not fish','Family groups jointly raise chicks; siblings help their parents','Famous for boldly stealing food from outdoor barbecues']},
+
+  {name:'Wedge-tailed Eagle',scientific:'Aquila audax',emoji:'🦅',category:'birds',region:'oceania',status:'Least Concern',wiki:'Wedge-tailed_eagle',lat:-29.00,lon:135.00,habitatName:'Australian Outback, SA',
+   description:'Australia\'s largest bird of prey and one of the largest eagles on Earth, capable of taking down prey as large as kangaroos and small emus.',
+   facts:['Australia\'s largest bird of prey — wingspan up to 2.3 m','Can soar to 2,000 m altitude while barely moving its wings','Groups of up to 20 have been observed taking down kangaroos','Mates for life; pairs return to the same enormous nest each year','Was once wrongly persecuted as a livestock killer — now fully protected']},
+
+  {name:'Leafy Sea Dragon',scientific:'Phycodurus eques',emoji:'🐠',category:'fish',region:'oceania',status:'Least Concern',wiki:'Leafy_seadragon',lat:-35.77,lon:137.00,habitatName:'Kangaroo Island, South Australia',
+   description:'Found only in southern Australian waters, this seahorse relative is one of the ocean\'s most extraordinary camouflage masters — virtually invisible among kelp.',
+   facts:['Found only in southern Australian waters — nowhere else on Earth','Leaf-like appendages are camouflage only — not used for propulsion','Males carry and incubate the eggs on a special brood patch','Have no stomach — must eat almost continuously','So well camouflaged they were rarely observed before scuba diving']},
+
+  {name:'Blue-ringed Octopus',scientific:'Hapalochlaena lunulata',emoji:'🐙',category:'fish',region:'oceania',status:'Least Concern',wiki:'Blue-ringed_octopus',lat:-18.29,lon:147.70,habitatName:'Great Barrier Reef, Queensland',
+   description:'The size of a golf ball but carrying enough venom to kill 26 adults in minutes, the blue-ringed octopus is one of the ocean\'s most lethal animals with no antivenom.',
+   facts:['Golf-ball-sized yet carries venom to kill 26 humans in minutes','There is no antivenom — the only treatment is assisted breathing','Bites are painless, making them especially dangerous','Glowing blue rings appear as a warning signal when threatened','Produces tetrodotoxin — the same toxin found in pufferfish']},
+
+  {name:'Cane Toad',scientific:'Rhinella marina',emoji:'🐸',category:'amphibians',region:'oceania',status:'Least Concern',wiki:'Cane_toad',lat:-16.00,lon:145.00,habitatName:'Queensland Coast, Australia',
+   description:'Ecology\'s most notorious cautionary tale: introduced to Australia in 1935 to control beetles, they became one of the world\'s most destructive invasive species.',
+   facts:['Introduced to Australia in 1935 to control beetles — it failed completely','Now listed among the world\'s 100 worst invasive species','Skin toxins are lethal to dogs, cats, and native crocodiles','A female can lay up to 35,000 eggs twice per year','Native Australian predators evolved no resistance to their toxins']}
+];
+
+// ─── BIOME DATA (10 biomes) ────────────────────────────────────────────────────
+const BIOMES=[
+  {name:'African Savanna',emoji:'🌾',regions:['africa'],categories:['mammals','birds','reptiles'],
+   lat:-2.33,lon:34.83,zoom:7,svLat:-1.50,svLon:35.10,
+   climate:'Tropical wet/dry — hot year-round with distinct wet and dry seasons',
+   wiki:'East_African_savanna',
+   description:'A vast sea of golden grassland dotted with acacia trees, home to the greatest concentration of large mammals on Earth. The annual wildebeest migration here is the largest animal movement on the planet.',
+   facts:['Covers about 20% of Africa — 5 million km²','Home to the famous "Big Five": lion, elephant, buffalo, leopard, rhino','Annual wildebeest migration — 1.5 million animals move 800 km','Acacia trees evolved thorns and bitter leaves to deter browsers','Fire is essential — burns prevent forest takeover and renew grasses']},
+
+  {name:'Amazon Rainforest',emoji:'🌿',regions:['southAmerica'],categories:['mammals','birds','reptiles','amphibians','insects','fish'],
+   lat:-3.10,lon:-60.02,zoom:7,svLat:-3.10,svLon:-60.02,
+   climate:'Tropical rainforest — hot and humid year-round, over 2,000 mm of rain per year',
+   wiki:'Amazon_rainforest',
+   description:'The world\'s largest tropical rainforest spans 5.5 million km² and contains 10% of all species on Earth. The Amazon River discharges 20% of all fresh water entering the world\'s oceans.',
+   facts:['Covers 5.5 million km² across 9 countries','Contains an estimated 10% of all Earth\'s species','Amazon River discharges 20% of all Earth\'s river water','Trees create their own rainfall — the "flying river"','Around 17% has been deforested since the 1970s']},
+
+  {name:'Himalayan Mountains',emoji:'🏔️',regions:['asia'],categories:['mammals','birds'],
+   lat:27.98,lon:86.93,zoom:8,svLat:27.98,svLon:86.92,
+   climate:'Alpine — frigid winters, cool summers; conditions vary dramatically with altitude',
+   wiki:'Himalayas',
+   description:'The roof of the world hosts unique high-altitude ecosystems where species have adapted to extreme cold, low oxygen, and intense UV radiation. Snow leopards and red pandas inhabit these magical cloud forests.',
+   facts:['Contains 10 of Earth\'s 14 mountains above 8,000 m','Home to snow leopards, red pandas, and Himalayan brown bears','Cloud forests at mid-elevation host extraordinary biodiversity','Rivers fed by glaciers supply water to 2 billion people','Temperatures can drop to −40°C at high altitude in winter']},
+
+  {name:'Australian Outback',emoji:'🏜️',regions:['oceania'],categories:['mammals','reptiles','birds'],
+   lat:-25.00,lon:133.00,zoom:5,svLat:-25.35,svLon:131.03,
+   climate:'Desert and semi-arid — extreme temperature swings, very low and unpredictable rainfall',
+   wiki:'Australian_outback',
+   description:'Australia\'s vast red interior — an ancient landscape of spinifex grasslands, red sand dunes, and ghost gum trees. Marsupials here have evolved in isolation for 30 million years.',
+   facts:['Covers about 70% of the Australian continent','Records temperatures from −6°C to +50°C in the same year','Marsupials evolved here in isolation for 30+ million years','Uluru (Ayers Rock) is the world\'s second largest monolith','The "dead heart" receives less than 250 mm of rain per year']},
+
+  {name:'North American Forests',emoji:'🌲',regions:['northAmerica'],categories:['mammals','birds','fish'],
+   lat:44.43,lon:-110.59,zoom:7,svLat:44.46,svLon:-110.83,
+   climate:'Temperate and boreal — cold winters, warm summers; reliable rainfall year-round',
+   wiki:'Temperate_rainforest',
+   description:'From Pacific temperate rainforests to Yellowstone\'s geothermal wonderland, North American forests harbour grizzly bears, gray wolves, and bald eagles in landscapes shaped by fire, ice, and volcanic activity.',
+   facts:['Yellowstone is Earth\'s largest intact temperate ecosystem','Wolf reintroduction here is the world\'s most studied trophic cascade','Pacific temperate rainforests receive over 3,500 mm of rain per year','Grizzly bears can consume 20,000 calories in a single day','Old-growth trees can be over 1,000 years old']},
+
+  {name:'European Woodlands',emoji:'🍂',regions:['europe'],categories:['mammals','birds','insects','amphibians','reptiles'],
+   lat:48.00,lon:8.20,zoom:8,svLat:48.00,svLon:8.20,
+   climate:'Temperate oceanic — mild and wet, four distinct seasons',
+   wiki:'Temperate_deciduous_forest',
+   description:'Ancient deciduous forests once covered most of Europe. Remnants in the Black Forest, Bavarian Forest, and Białowieża preserve the last echoes of a primal wilderness that shaped human civilisation.',
+   facts:['Białowieża in Poland is Europe\'s last primeval lowland forest','Home to Europe\'s largest land animal, the European bison','Fungi below forest floors link trees in a nutrient-sharing network','Brown bears are slowly returning to the Alps after centuries away','Stag beetles have larvae that develop underground for up to 7 years']},
+
+  {name:'South American Wetlands',emoji:'💧',regions:['southAmerica'],categories:['mammals','birds','reptiles','fish'],
+   lat:-16.50,lon:-56.00,zoom:7,svLat:-16.50,svLon:-56.00,
+   climate:'Tropical wet/dry — hot year-round with a dramatic annual flood cycle',
+   wiki:'Pantanal',
+   description:'The Pantanal is the world\'s largest tropical wetland, flooding seasonally to create an extraordinary mosaic of rivers, lagoons, and flooded forests teeming with wildlife.',
+   facts:['World\'s largest tropical wetland — 150,000–195,000 km²','Floods dramatically during the wet season each year','Hosts the world\'s densest jaguar population','Over 650 bird species recorded — more than all of Europe','Giant otters, giant anteaters, and capybaras all thrive here']},
+
+  {name:'Great Barrier Reef',emoji:'🐠',regions:['oceania'],categories:['fish','reptiles'],
+   lat:-18.29,lon:147.70,zoom:8,svLat:-18.29,svLon:147.70,
+   climate:'Tropical marine — warm, clear water year-round between 23–29°C',
+   wiki:'Great_Barrier_Reef',
+   description:'The largest living structure on Earth and the only one visible from space, the Great Barrier Reef comprises 2,900 individual reefs and hosts over 1,500 species of fish.',
+   facts:['Largest living structure on Earth — visible from space','Over 2,900 individual reefs and 900 islands','Home to 1,500 species of fish, 4,000 types of mollusc','Coral bleaching events now occur 5× more frequently than in the 1980s','Estimated economic value of AUD $6.4 billion per year to Australia']},
+
+  {name:'Arctic Tundra',emoji:'❄️',regions:['northAmerica'],categories:['mammals','birds'],
+   lat:71.30,lon:-156.75,zoom:6,svLat:71.30,svLon:-156.75,
+   climate:'Arctic — extremely cold winters, short cool summers, very little precipitation',
+   wiki:'Arctic_tundra',
+   description:'The treeless frozen plains encircling the Arctic Ocean are home to remarkable cold-adapted species that must survive months of polar darkness and temperatures dropping below −50°C.',
+   facts:['Permafrost underlies the entire biome','Arctic summer brings continuous daylight for weeks','Arctic warming is occurring 4× faster than the global average','Polar bear sea ice habitat has declined 13% per decade since 1979','Lemmings cycle in dramatic boom-bust populations every 3–4 years']},
+
+  {name:'Southeast Asian Jungle',emoji:'🌴',regions:['asia'],categories:['mammals','reptiles','birds','amphibians','insects'],
+   lat:4.62,lon:117.62,zoom:7,svLat:4.62,svLon:117.62,
+   climate:'Tropical rainforest — consistently hot (26–32°C), over 3,000 mm of rain per year',
+   wiki:'Borneo_lowland_rain_forests',
+   description:'Borneo and Sumatra harbour some of Earth\'s most ancient rainforests, unchanged for 130 million years, and home to orangutans, proboscis monkeys, and Komodo dragons.',
+   facts:['Borneo\'s rainforest is up to 130 million years old — Earth\'s oldest','Contains 6% of Earth\'s biodiversity in 1% of land area','Rafflesia — world\'s largest flower — blooms here for just 5 days','Over 400 bird species on Borneo alone','Deforestation for palm oil has reduced orangutan habitat by 80%']}
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let activeRegion='all', activeCat='all', searchQuery='';
+let currentModalIndex=null, currentList=[];
+const discovered=new Set(JSON.parse(localStorage.getItem('ae60_disc')||'[]'));
+let leafletMap=null, animalMarkers=[], continentMarkers=[];
+let biomeMap=null, activeBiomeIdx=null;
+const wikiCache={};
+
+// ─── WIKI IMAGE LOADER ────────────────────────────────────────────────────────
+async function getWikiImage(title){
+  if(wikiCache[title]!==undefined) return wikiCache[title];
+  try{
+    const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    const d=await r.json();
+    const url=d.originalimage?.source||d.thumbnail?.source||null;
+    wikiCache[title]=url;
+    return url;
+  }catch{wikiCache[title]=null;return null;}
+}
+
+async function setCardImage(img,wiki,emoji,bgClass){
+  const url=await getWikiImage(wiki);
+  if(url){img.src=url;img.onload=()=>{img.classList.add('loaded');img.previousElementSibling.style.opacity=0};}
+}
+
+async function setModalImage(imgEl,wiki){
+  const url=await getWikiImage(wiki);
+  if(url){imgEl.src=url;imgEl.onload=()=>{imgEl.classList.add('loaded');imgEl.previousElementSibling.style.opacity=0};}
+}
+
+async function setBiomeImage(imgEl,wiki){
+  const url=await getWikiImage(wiki);
+  if(url){imgEl.src=url;}
+}
+
+// ─── LEAFLET WORLD MAP ────────────────────────────────────────────────────────
+function initMap(){
+  leafletMap=L.map('world-map',{center:[20,0],zoom:2,minZoom:1,maxZoom:18,zoomControl:true,
+    attributionControl:true});
+
+  // Satellite imagery (Esri World Imagery — free, no API key)
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'Tiles &copy; Esri, USGS, NOAA',maxZoom:18
+  }).addTo(leafletMap);
+
+  // Place name labels overlay
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'',maxZoom:18,opacity:0.6
+  }).addTo(leafletMap);
+
+  // Continent clickable labels
+  Object.entries(REGION_CENTERS).forEach(([reg,[lat,lon]])=>{
+    const label=L.divIcon({
+      html:`<div class="continent-marker" data-reg="${reg}">${{africa:'Africa',asia:'Asia',northAmerica:'N.America',southAmerica:'S.America',europe:'Europe',oceania:'Oceania'}[reg]}</div>`,
+      className:'',iconSize:null
+    });
+    const m=L.marker([lat,lon],{icon:label,interactive:true}).addTo(leafletMap);
+    m.on('click',()=>selectRegion(reg));
+    continentMarkers.push({reg,marker:m});
+  });
+
+  updateMapMarkers();
+}
+
+function updateMapMarkers(){
+  animalMarkers.forEach(m=>leafletMap.removeLayer(m));
+  animalMarkers=[];
+
+  const list=filteredAnimals();
+  const zoom=leafletMap.getZoom();
+  if(zoom<3) return; // don't crowd the world view
+
+  list.forEach((a,i)=>{
+    const icon=L.divIcon({
+      html:`<div class="animal-map-marker${discovered.has(i)?' discovered':''}" title="${a.name}">${catIcon(a.category)}</div>`,
+      className:'',iconSize:[36,36],iconAnchor:[18,18]
+    });
+    const m=L.marker([a.lat,a.lon],{icon}).addTo(leafletMap);
+    m.on('click',()=>openModal(ANIMALS.indexOf(a)));
+    animalMarkers.push(m);
+  });
+}
+
+leafletMap_ready=false;
+document.addEventListener('DOMContentLoaded',()=>{
+  initMap();
+  leafletMap.on('zoomend',updateMapMarkers);
+  leafletMap.on('moveend',updateMapMarkers);
+  buildBiomeScroll();
+  renderCards();
+  updateDiscUI();
+  initTicker();
+});
+
+function selectRegion(reg){
+  activeRegion=reg;
+  document.querySelectorAll('.region-pill').forEach(p=>{
+    p.classList.toggle('active',p.dataset.reg===reg);
+  });
+  // Update continent marker styles
+  continentMarkers.forEach(({reg:r,marker:m})=>{
+    const el=m.getElement()?.querySelector('.continent-marker');
+    if(el) el.classList.toggle('active',r===reg);
+  });
+  document.getElementById('reset-btn').style.display=reg==='all'?'none':'inline-block';
+  if(reg!=='all'&&REGION_CENTERS[reg]){
+    leafletMap.flyTo(REGION_CENTERS[reg],REGION_ZOOM[reg],{duration:1.2});
+  } else {
+    leafletMap.flyTo([20,0],2,{duration:1.2});
+  }
+  setTimeout(updateMapMarkers,1300);
+  renderCards();
+}
+
+// ─── BIOME SCROLL ─────────────────────────────────────────────────────────────
+function buildBiomeScroll(){
+  const scroll=document.getElementById('biome-scroll');
+  BIOMES.forEach((b,i)=>{
+    const card=document.createElement('div');
+    card.className='biome-card';
+    card.innerHTML=`<div class="biome-thumb">
+      <div class="biome-thumb-emoji"><svg class="svg-ic"><use href="#ic-leaf"/></svg></div>
+      <img style="display:none" loading="lazy"/>
+    </div>
+    <div class="biome-info">
+      <div class="biome-name"><svg class="svg-ic"><use href="#ic-leaf"/></svg> ${b.name}</div>
+      <div class="biome-meta">${biomeCounts(b)} animals</div>
+    </div>`;
+    card.addEventListener('click',()=>openBiomeDetail(i,card));
+    scroll.appendChild(card);
+
+    // lazy load biome image
+    const img=card.querySelector('img');
+    getBiomeImage(b.wiki).then(url=>{if(url){img.src=url;img.style.display='block';}});
+  });
+}
+
+async function getBiomeImage(wiki){
+  return getWikiImage(wiki);
+}
+
+function biomeCounts(b){
+  return ANIMALS.filter(a=>b.regions.includes(a.region)&&b.categories.includes(a.category)).length;
+}
+
+function biomeAnimals(b){
+  return ANIMALS.filter(a=>b.regions.includes(a.region)&&b.categories.includes(a.category));
+}
+
+function openBiomeDetail(idx,cardEl){
+  const wasActive=activeBiomeIdx===idx;
+  document.querySelectorAll('.biome-card').forEach(c=>c.classList.remove('active'));
+  const detail=document.getElementById('biome-detail');
+
+  if(wasActive){
+    detail.classList.remove('open');
+    activeBiomeIdx=null;
+    if(biomeMap){biomeMap.remove();biomeMap=null;}
+    return;
+  }
+
+  cardEl.classList.add('active');
+  activeBiomeIdx=idx;
+  const b=BIOMES[idx];
+
+  // Init or reinit the biome detail map
+  if(biomeMap){biomeMap.remove();biomeMap=null;}
+  detail.classList.add('open');
+  detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+
+  setTimeout(()=>{
+    biomeMap=L.map('biome-detail-map',{center:[b.lat,b.lon],zoom:b.zoom,
+      zoomControl:true,attributionControl:false});
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {attribution:'',maxZoom:18}).addTo(biomeMap);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      {attribution:'',maxZoom:18,opacity:0.5}).addTo(biomeMap);
+    biomeMap.invalidateSize();
+  },50);
+
+  // Build body
+  const animals=biomeAnimals(b);
+  const chipsHtml=animals.map(a=>`
+    <div class="biome-chip" onclick="openModal(${ANIMALS.indexOf(a)})">
+      ${catIcon(a.category)} ${a.name}
+    </div>`).join('');
+
+  const factsHtml=b.facts.map(f=>`<li>${f}</li>`).join('');
+  const satURL=`https://maps.google.com/maps?q=${b.lat},${b.lon}&t=k&z=${b.zoom}&output=embed`;
+  const svURL=`https://maps.google.com/maps?q=${b.svLat},${b.svLon}&layer=c&cbll=${b.svLat},${b.svLon}`;
+  const satOpenURL=`https://maps.google.com/maps?q=${b.lat},${b.lon}&t=k`;
+
+  document.getElementById('biome-detail-body').innerHTML=`
+    <div class="biome-detail-name"><svg class="svg-ic"><use href="#ic-leaf"/></svg> ${b.name}</div>
+    <div class="biome-detail-climate">${b.climate}</div>
+    <div class="biome-detail-desc">${b.description}</div>
+    <div class="biome-walkthrough-btns">
+      <a href="${satOpenURL}" target="_blank" class="walkthrough-btn btn-satellite">
+        <svg class="svg-ic"><use href="#ic-satellite"/></svg> Google Maps Satellite
+      </a>
+      <a href="${svURL}" target="_blank" class="walkthrough-btn btn-streetview">
+        <svg class="svg-ic"><use href="#ic-camera"/></svg> Google Street View
+      </a>
+    </div>
+    <div class="biome-facts">
+      <div class="biome-facts-title">Key Facts</div>
+      <ul class="biome-facts">${factsHtml}</ul>
+    </div>
+    <div class="biome-animals-title">Animals of this biome (${animals.length})</div>
+    <div class="biome-animal-chips">${chipsHtml}</div>
+  `;
+}
+
+// ─── FILTER ───────────────────────────────────────────────────────────────────
+function filteredAnimals(){
+  const q=searchQuery.toLowerCase().trim();
+  return ANIMALS.filter(a=>{
+    const rm=activeRegion==='all'||a.region===activeRegion;
+    const cm=activeCat==='all'||a.category===activeCat;
+    const sm=!q||a.name.toLowerCase().includes(q)||a.scientific.toLowerCase().includes(q)||
+              a.description.toLowerCase().includes(q)||a.facts.some(f=>f.toLowerCase().includes(q));
+    return rm&&cm&&sm;
+  });
+}
+
+// ─── RENDER CARDS ─────────────────────────────────────────────────────────────
+function renderCards(){
+  const grid=document.getElementById('cards-grid');
+  const empty=document.getElementById('empty-state');
+  const title=document.getElementById('results-title');
+  const countEl=document.getElementById('results-count');
+
+  const list=filteredAnimals();
+  currentList=list;
+
+  let h='All Animals';
+  if(activeRegion!=='all'&&activeCat!=='all') h=cap(activeCat)+' of '+REGION_NAMES[activeRegion];
+  else if(activeRegion!=='all') h='Animals of '+REGION_NAMES[activeRegion];
+  else if(activeCat!=='all') h='All '+cap(activeCat);
+  if(searchQuery.trim()) h=`Results for "${searchQuery.trim()}"`;
+  title.textContent=h;
+  countEl.textContent=list.length+' animal'+(list.length===1?'':'s');
+
+  if(!list.length){grid.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+
+  grid.innerHTML=list.map((a,i)=>{
+    const idx=ANIMALS.indexOf(a);
+    const disc=discovered.has(idx);
+    return `<div class="card" data-idx="${idx}" onclick="openModal(${idx})" style="animation-delay:${i*30}ms">
+      <div class="card-photo ${`bg-${a.category}`}">
+        <span class="card-fallback">${catIcon(a.category)}</span>
+        <img data-wiki="${a.wiki}" alt="${a.name}" loading="lazy"/>
+      </div>
+      <div class="card-overlay">
+        <p>${a.facts[0]}</p>
+        <small>TAP TO EXPLORE <svg class="svg-ic"><use href="#ic-arrow-right"/></svg></small>
+      </div>
+      <div class="card-info">
+        ${disc?'<span class="card-check"><svg class="svg-ic"><use href="#ic-check"/></svg></span>':''}
+        <div class="card-name">${a.name}</div>
+        <div class="card-row">
+          <span class="badge b-${a.category}">${a.category}</span>
+          <span class="card-region">${catIcon(a.category)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Lazy-load Wikipedia images for visible cards
+  grid.querySelectorAll('img[data-wiki]').forEach(img=>{
+    const wiki=img.dataset.wiki;
+    getWikiImage(wiki).then(url=>{
+      if(url){img.src=url;img.onload=()=>{img.classList.add('loaded');img.previousElementSibling.style.opacity=0};}
+    });
+  });
+
+  // 3D tilt
+  document.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('mousemove',e=>{
+      const r=card.getBoundingClientRect();
+      const x=((e.clientX-r.left)/r.width-.5)*14;
+      const y=((e.clientY-r.top)/r.height-.5)*-14;
+      card.style.transform=`perspective(800px) rotateX(${y}deg) rotateY(${x}deg) translateY(-5px) scale(1.02)`;
+      card.style.transition='none';
+    });
+    card.addEventListener('mouseleave',()=>{
+      card.style.transform='';
+      card.style.transition='transform .4s ease';
+    });
+  });
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function openModal(idx){
+  const a=ANIMALS[idx];
+  const sc=STATUS_CODE[a.status]||'LC';
+  const inList=currentList.indexOf(a);
+  const prev=inList>0?ANIMALS.indexOf(currentList[inList-1]):null;
+  const next=inList<currentList.length-1?ANIMALS.indexOf(currentList[inList+1]):null;
+  const satURL=`https://maps.google.com/maps?q=${a.lat},${a.lon}&t=k`;
+  const svURL=`https://maps.google.com/maps?q=${a.lat},${a.lon}&layer=c&cbll=${a.lat},${a.lon}`;
+
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-hero bg-${a.category}">
+      <div class="fallback-hero">${catIcon(a.category)}</div>
+      <img alt="${a.name}" loading="eager" data-wiki="${a.wiki}"/>
+      <div class="modal-hero-grad"></div>
+      <div class="modal-hero-title">
+        <h2>${a.name}</h2>
+        <em>${a.scientific}</em>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-badges">
+        <span class="badge b-${a.category}">${a.category}</span>
+        <span class="s-badge s-${sc}">${a.status}</span>
+        <span class="badge" style="background:rgba(255,255,255,.05);color:var(--sub);border:1px solid var(--border)">${REGION_NAMES[a.region]}</span>
+      </div>
+      <p class="modal-desc">${a.description}</p>
+      <div class="facts-head">Wild Facts</div>
+      <ul class="facts-list" id="facts-list">
+        ${a.facts.map(f=>`<li>${f}</li>`).join('')}
+      </ul>
+      <div class="habitat-section">
+        <div class="habitat-title">Habitat</div>
+        <div class="habitat-name"><svg class="svg-ic"><use href="#ic-pin"/></svg> ${a.habitatName}</div>
+        <div class="habitat-btns">
+          <a href="${satURL}" target="_blank" class="habitat-btn hbtn-sat"><svg class="svg-ic"><use href="#ic-satellite"/></svg> Google Maps Satellite</a>
+          <a href="${svURL}" target="_blank" class="habitat-btn hbtn-sv"><svg class="svg-ic"><use href="#ic-camera"/></svg> Google Street View</a>
+        </div>
+      </div>
+      <div class="modal-nav">
+        <button onclick="event.stopPropagation();openModal(${prev})" ${prev===null?'disabled style="opacity:.3"':''}><svg class="svg-ic"><use href="#ic-arrow-left"/></svg> Previous</button>
+        <button onclick="event.stopPropagation();openModal(${next})" ${next===null?'disabled style="opacity:.3"':''}>Next <svg class="svg-ic"><use href="#ic-arrow-right"/></svg></button>
+      </div>
+    </div>`;
+
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  currentModalIndex=idx;
+  markDiscovered(idx);
+
+  // Load Wikipedia image
+  const img=document.querySelector('#modal-content .modal-hero img');
+  getWikiImage(a.wiki).then(url=>{
+    if(url&&img){img.src=url;img.onload=()=>{img.classList.add('loaded');img.previousElementSibling.style.opacity=0};}
+  });
+
+  // Stagger facts
+  setTimeout(()=>{
+    document.querySelectorAll('#facts-list li').forEach((li,i)=>{
+      setTimeout(()=>li.classList.add('visible'),i*80);
+    });
+  },200);
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow='';
+  currentModalIndex=null;
+}
+
+// ─── DISCOVERY ────────────────────────────────────────────────────────────────
+function markDiscovered(idx){
+  discovered.add(idx);
+  localStorage.setItem('ae60_disc',JSON.stringify([...discovered]));
+  updateDiscUI();
+}
+function updateDiscUI(){
+  const n=discovered.size,t=ANIMALS.length;
+  document.getElementById('disc-count').textContent=`${n}/${t}`;
+  document.getElementById('disc-text').textContent=n;
+  document.getElementById('disc-bar').style.width=`${(n/t)*100}%`;
+}
+function toggleDiscPanel(){
+  const p=document.getElementById('disc-panel');
+  p.style.display=p.style.display==='block'?'none':'block';
+}
+
+// ─── SURPRISE / RESET ─────────────────────────────────────────────────────────
+function surpriseMe(){
+  const list=filteredAnimals();
+  if(!list.length) return;
+  openModal(ANIMALS.indexOf(list[Math.floor(Math.random()*list.length)]));
+}
+function resetAll(){
+  activeRegion='all';
+  document.querySelectorAll('.region-pill').forEach(p=>p.classList.toggle('active',p.dataset.reg==='all'));
+  continentMarkers.forEach(({marker:m})=>{
+    m.getElement()?.querySelector('.continent-marker')?.classList.remove('active');
+  });
+  document.getElementById('reset-btn').style.display='none';
+  leafletMap.flyTo([20,0],2,{duration:1.2});
+  setTimeout(updateMapMarkers,1300);
+  renderCards();
+}
+
+// ─── TICKER ───────────────────────────────────────────────────────────────────
+function initTicker(){
+  const facts=ANIMALS.flatMap(a=>a.facts).sort(()=>Math.random()-.5);
+  let idx=0;
+  const el=document.getElementById('ticker');
+  function cycle(){
+    el.style.opacity=0;
+    setTimeout(()=>{el.textContent=facts[idx++%facts.length];el.style.opacity=1;},300);
+  }
+  cycle();
+  setInterval(cycle,6000);
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function cap(s){return s[0].toUpperCase()+s.slice(1)}
+
+// ─── EVENTS ───────────────────────────────────────────────────────────────────
+document.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',function(){
+  document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
+  this.classList.add('active');
+  activeCat=this.dataset.cat;
+  renderCards();
+  updateMapMarkers();
+}));
+
+document.querySelectorAll('.region-pill').forEach(p=>p.addEventListener('click',function(){
+  selectRegion(this.dataset.reg);
+}));
+
+document.getElementById('search-input').addEventListener('input',function(){
+  searchQuery=this.value;
+  renderCards();
+  updateMapMarkers();
+});
+
+document.getElementById('modal-overlay').addEventListener('click',e=>{
+  if(e.target.id==='modal-overlay') closeModal();
+});
+document.getElementById('modal-close').addEventListener('click',closeModal);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeModal();
+  if(e.key==='ArrowRight'&&currentModalIndex!==null){
+    const i=currentList.indexOf(ANIMALS[currentModalIndex]);
+    if(i<currentList.length-1) openModal(ANIMALS.indexOf(currentList[i+1]));
+  }
+  if(e.key==='ArrowLeft'&&currentModalIndex!==null){
+    const i=currentList.indexOf(ANIMALS[currentModalIndex]);
+    if(i>0) openModal(ANIMALS.indexOf(currentList[i-1]));
+  }
+});
+</script>
+<script src="paw-cursor.js" defer></script>
+</body>
+</html>
