@@ -425,5 +425,6 @@ function closeModal(){document.getElementById('modal-overlay').classList.remove(
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.key==='ArrowRight'&&currentModal!==null){const i=currentList.indexOf(ANIMALS[currentModal]);if(i<currentList.length-1)openModal(ANIMALS.indexOf(currentList[i+1]));}if(e.key==='ArrowLeft'&&currentModal!==null){const i=currentList.indexOf(ANIMALS[currentModal]);if(i>0)openModal(ANIMALS.indexOf(currentList[i-1]));}});
 </script>
 <script src="paw-cursor.js" defer></script>
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
